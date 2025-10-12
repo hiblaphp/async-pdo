@@ -1,0 +1,19 @@
+{
+    "name": "hiblaphp/async-pdo",
+    "description": "Cooperative Asychonous PDO implementation",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Hibla\\AsyncPDO\\": "src/"
+        }
+    },
+    "minimum-stability": "dev",
+    "require": {
+        "php": "^8.2",
+        "hiblaphp/event-loop": "dev-main",
+        "hiblaphp/promise": "dev-main",
+        "hiblaphp/async": "dev-main",
+        "ext-pdo": "*"
+    }
+}
