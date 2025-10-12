@@ -1,6 +1,6 @@
 <?php
 
-namespace Hibla\AsyncPDO;
+namespace Hibla\AsyncPDO\Utilities;
 
 use InvalidArgumentException;
 use PDO;

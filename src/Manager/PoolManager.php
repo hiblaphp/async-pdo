@@ -1,6 +1,6 @@
 <?php
 
-namespace Hibla\AsyncPDO;
+namespace Hibla\AsyncPDO\Manager;
 
 use InvalidArgumentException;
 use PDO;
@@ -11,14 +11,7 @@ use RuntimeException;
 use SplQueue;
 use Throwable;
 
-/**
- * An asynchronous, fiber-aware PDO connection pool.
- *
- * This pool manages a limited number of PDO connections, allowing multiple
- * concurrent fibers to share them efficiently without blocking the event loop.
- * It handles connection limits, waiting queues, and safe connection reuse.
- */
-class Pool
+class PoolManager
 {
     /**
      * @var SplQueue<PDO> A queue of available, idle connections.

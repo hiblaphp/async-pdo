@@ -3,7 +3,7 @@
 namespace Hibla\AsyncPDO;
 
 use PDO;
-use Hibla\AsyncPDO\Pool;
+use Hibla\AsyncPDO\Manager\PoolManager;
 use Hibla\Promise\Interfaces\PromiseInterface;
 use Throwable;
 
@@ -16,8 +16,8 @@ use Throwable;
  */
 final class AsyncPDO
 {
-    /** @var Pool|null Connection pool instance */
-    private static ?Pool $pool = null;
+    /** @var PoolManager|null Connection pool instance */
+    private static ?PoolManager $pool = null;
 
     /** @var bool Tracks initialization state */
     private static bool $isInitialized = false;
@@ -44,7 +44,7 @@ final class AsyncPDO
             return;
         }
 
-        self::$pool = new Pool($dbConfig, $poolSize);
+        self::$pool = new PoolManager($dbConfig, $poolSize);
         self::$isInitialized = true;
     }
 
@@ -217,13 +217,13 @@ final class AsyncPDO
     /**
      * Gets the connection pool instance.
      *
-     * @return Pool The initialized connection pool
+     * @return PoolManager The initialized connection pool
      *
      * @throws \RuntimeException If AsyncPDO has not been initialized
      *
      * @internal This method is for internal use only
      */
-    public static function getPool(): Pool
+    public static function getPool(): PoolManager
     {
         if (! self::$isInitialized || self::$pool === null) {
             throw new \RuntimeException(
