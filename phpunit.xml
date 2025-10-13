@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true">
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd" 
+         bootstrap="vendor/autoload.php" 
+         colors="true">
     <testsuites>
         <testsuite name="Test Suite">
             <directory suffix="Test.php">./tests</directory>
@@ -10,4 +13,26 @@
             <directory>src</directory>
         </include>
     </source>
+    <php>
+        <!-- MySQL -->
+        <env name="MYSQL_HOST" value="127.0.0.1" force="true"/>
+        <env name="MYSQL_PORT" value="3306" force="true"/>
+        <env name="MYSQL_DATABASE" value="test" force="true"/>
+        <env name="MYSQL_USERNAME" value="test_user" force="true"/>
+        <env name="MYSQL_PASSWORD" value="test_password" force="true"/>
+        
+        <!-- PostgreSQL -->
+        <env name="PGSQL_HOST" value="127.0.0.1" force="true"/>
+        <env name="PGSQL_PORT" value="5433" force="true"/>
+        <env name="PGSQL_DATABASE" value="postgres" force="true"/>
+        <env name="PGSQL_USERNAME" value="postgres" force="true"/>
+        <env name="PGSQL_PASSWORD" value="postgres" force="true"/>
+        
+        <!-- MariaDB -->
+        <env name="MARIADB_HOST" value="127.0.0.1" force="true"/>
+        <env name="MARIADB_PORT" value="3307" force="true"/>
+        <env name="MARIADB_DATABASE" value="test" force="true"/>
+        <env name="MARIADB_USERNAME" value="test_user" force="true"/>
+        <env name="MARIADB_PASSWORD" value="test_password" force="true"/>
+    </php>
 </phpunit>
