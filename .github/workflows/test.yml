@@ -13,7 +13,7 @@ jobs:
     
     strategy:
       matrix:
-        php: ['8.1', '8.2', '8.3']
+        php: [ '8.3', '8.4']
     
     steps:
       - uses: actions/checkout@v4
@@ -126,10 +126,10 @@ jobs:
           
           # PostgreSQL
           PGSQL_HOST: 127.0.0.1
-          PGSQL_PORT: 5432
-          PGSQL_DATABASE: test
-          PGSQL_USERNAME: test_user
-          PGSQL_PASSWORD: test_password
+          PGSQL_PORT: 5433
+          PGSQL_DATABASE: postgres
+          PGSQL_USERNAME: postgres
+          PGSQL_PASSWORD: postgres
           
           # MariaDB
           MARIADB_HOST: 127.0.0.1
@@ -177,7 +177,7 @@ jobs:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
         ports:
-          - 5432:5432
+          - 5433:5432
         options: >-
           --health-cmd="pg_isready -U test_user"
           --health-interval=10s
@@ -205,8 +205,8 @@ jobs:
           MYSQL_USERNAME: test_user
           MYSQL_PASSWORD: test_password
           PGSQL_HOST: 127.0.0.1
-          PGSQL_PORT: 5432
-          PGSQL_DATABASE: test
-          PGSQL_USERNAME: test_user
-          PGSQL_PASSWORD: test_password
+          PGSQL_PORT: 5433
+          PGSQL_DATABASE: postgres
+          PGSQL_USERNAME: postgres
+          PGSQL_PASSWORD: postgres
         run: ./vendor/bin/pest 
