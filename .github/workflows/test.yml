@@ -1,115 +1,15 @@
 name: Tests
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+on: [push, pull_request]
 
 jobs:
-  unit-tests:
-    name: Unit Tests (PHP ${{ matrix.php }})
+  tests:
+    name: Tests (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     
     strategy:
       matrix:
-        php: [ '8.3', '8.4']
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: pdo, pdo_sqlite
-          coverage: none
-      
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-      
-      - name: Run unit tests
-        run: composer test tests/Unit
-
-  integration-tests:
-    name: Integration Tests (PHP ${{ matrix.php }})
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        php: ['8.3', '8.4']
-    
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root_password
-          MYSQL_DATABASE: test
-          MYSQL_USER: test_user
-          MYSQL_PASSWORD: test_password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-      
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5443:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-      
-      mariadb:
-        image: mariadb:11
-        env:
-          MARIADB_ROOT_PASSWORD: root_password
-          MARIADB_DATABASE: test
-          MARIADB_USER: test_user
-          MARIADB_PASSWORD: test_password
-        ports:
-          - 3307:3306
-        options: >-
-          --health-cmd="healthcheck.sh --connect --innodb_initialized"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: pdo, pdo_sqlite, pdo_mysql, pdo_pgsql
-          coverage: none
-      
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-      
-      - name: Wait for databases
-        run: sleep 10
-      
-      - name: Run integration tests
-        run: composer test tests/Integration
-
-  all-tests:
-    name: All Tests (PHP ${{ matrix.php }})
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        php: ['8.3', '8.4']
+        php: ['8.2', '8.3', '8.4']
     
     services:
       mysql:
@@ -172,5 +72,5 @@ jobs:
       - name: Wait for databases
         run: sleep 10
       
-      - name: Run all tests 
+      - name: Run all tests
         run: ./vendor/bin/pest
