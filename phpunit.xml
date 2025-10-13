@@ -23,7 +23,7 @@
         
         <!-- PostgreSQL -->
         <env name="PGSQL_HOST" value="127.0.0.1" force="true"/>
-        <env name="PGSQL_PORT" value="5433" force="true"/>
+        <env name="PGSQL_PORT" value="5443" force="true"/>
         <env name="PGSQL_DATABASE" value="postgres" force="true"/>
         <env name="PGSQL_USERNAME" value="postgres" force="true"/>
         <env name="PGSQL_PASSWORD" value="postgres" force="true"/>
