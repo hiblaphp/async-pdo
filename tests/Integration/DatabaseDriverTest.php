@@ -3,18 +3,6 @@
 use Hibla\AsyncPDO\Manager\PoolManager;
 
 describe('Database Drivers Integration', function () {
-      it('debugs environment variables', function () {
-        var_dump('=== Environment Variables Debug ===');
-        var_dump('MYSQL_HOST: ' . ($_ENV['MYSQL_HOST'] ?? 'NOT SET'));
-        var_dump('PGSQL_HOST: ' . ($_ENV['PGSQL_HOST'] ?? 'NOT SET'));
-        var_dump('PGSQL_USERNAME: ' . ($_ENV['PGSQL_USERNAME'] ?? 'NOT SET'));
-        var_dump('PGSQL_PASSWORD: ' . ($_ENV['PGSQL_PASSWORD'] ?? 'NOT SET'));
-        var_dump('MARIADB_HOST: ' . ($_ENV['MARIADB_HOST'] ?? 'NOT SET'));
-        var_dump('SQLSRV_HOST: ' . ($_ENV['SQLSRV_HOST'] ?? 'NOT SET'));
-        var_dump('===================================');
-        
-        expect(true)->toBeTrue(); // Just pass this test
-    });
     describe('SQLite', function () {
         it('connects and executes query', function () {
             $config = [
@@ -173,6 +161,8 @@ describe('Database Drivers Integration', function () {
 
     describe('SQL Server', function () {
         it('connects and executes query', function () {
+            test()->markTestSkipped('SQL Server skipped: No official PDO driver available for PHP 8.4');
+            
             if (empty($_ENV['SQLSRV_HOST'])) {
                 test()->markTestSkipped('SQL Server not configured');
             }
