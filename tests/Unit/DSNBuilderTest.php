@@ -419,8 +419,9 @@ describe('DSNBuilder', function () {
                 'database' => 'test_db',
             ];
 
-            expect(fn() => DSNBuilder::build($config))
-                ->toThrow(PDOException::class, 'Unsupported database driver: unsupported_driver');
+            expect(fn () => DSNBuilder::build($config))
+                ->toThrow(PDOException::class, 'Unsupported database driver: unsupported_driver')
+            ;
         });
 
         it('throws exception for unknown driver', function () {
@@ -429,8 +430,9 @@ describe('DSNBuilder', function () {
                 'database' => 'test_db',
             ];
 
-            expect(fn() => DSNBuilder::build($config))
-                ->toThrow(PDOException::class, 'Unsupported database driver: mongodb');
+            expect(fn () => DSNBuilder::build($config))
+                ->toThrow(PDOException::class, 'Unsupported database driver: mongodb')
+            ;
         });
     });
 

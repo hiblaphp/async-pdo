@@ -35,7 +35,7 @@ describe('Database Drivers Integration', function () {
             $config = [
                 'driver' => 'mysql',
                 'host' => $_ENV['MYSQL_HOST'] ?? 'localhost',
-                'port' => (int)($_ENV['MYSQL_PORT'] ?? 3306),
+                'port' => (int) ($_ENV['MYSQL_PORT'] ?? 3306),
                 'database' => $_ENV['MYSQL_DATABASE'] ?? 'test',
                 'username' => $_ENV['MYSQL_USERNAME'] ?? 'root',
                 'password' => $_ENV['MYSQL_PASSWORD'] ?? '',
@@ -67,7 +67,7 @@ describe('Database Drivers Integration', function () {
             $config = [
                 'driver' => 'mysql',
                 'host' => $_ENV['MYSQL_HOST'] ?? 'localhost',
-                'port' => (int)($_ENV['MYSQL_PORT'] ?? 3306),
+                'port' => (int) ($_ENV['MYSQL_PORT'] ?? 3306),
                 'database' => $_ENV['MYSQL_DATABASE'] ?? 'test',
                 'username' => $_ENV['MYSQL_USERNAME'] ?? 'root',
                 'password' => $_ENV['MYSQL_PASSWORD'] ?? '',
@@ -103,7 +103,7 @@ describe('Database Drivers Integration', function () {
             $config = [
                 'driver' => 'pgsql',
                 'host' => $_ENV['PGSQL_HOST'] ?? 'localhost',
-                'port' => (int)($_ENV['PGSQL_PORT'] ?? 5432),
+                'port' => (int) ($_ENV['PGSQL_PORT'] ?? 5432),
                 'database' => $_ENV['PGSQL_DATABASE'] ?? 'test',
                 'username' => $_ENV['PGSQL_USERNAME'] ?? 'postgres',
                 'password' => $_ENV['PGSQL_PASSWORD'] ?? 'postgres',
@@ -134,7 +134,7 @@ describe('Database Drivers Integration', function () {
             $config = [
                 'driver' => 'pgsql',
                 'host' => $_ENV['PGSQL_HOST'] ?? 'localhost',
-                'port' => (int)($_ENV['PGSQL_PORT'] ?? 5432),
+                'port' => (int) ($_ENV['PGSQL_PORT'] ?? 5432),
                 'database' => $_ENV['PGSQL_DATABASE'] ?? 'test',
                 'username' => $_ENV['PGSQL_USERNAME'] ?? 'postgres',
                 'password' => $_ENV['PGSQL_PASSWORD'] ?? 'postgres',
@@ -162,7 +162,7 @@ describe('Database Drivers Integration', function () {
     describe('SQL Server', function () {
         it('connects and executes query', function () {
             test()->markTestSkipped('SQL Server skipped: No official PDO driver available for PHP 8.4');
-            
+
             if (empty($_ENV['SQLSRV_HOST'])) {
                 test()->markTestSkipped('SQL Server not configured');
             }
@@ -170,7 +170,7 @@ describe('Database Drivers Integration', function () {
             $config = [
                 'driver' => 'sqlsrv',
                 'host' => $_ENV['SQLSRV_HOST'] ?? 'localhost',
-                'port' => (int)($_ENV['SQLSRV_PORT'] ?? 1433),
+                'port' => (int) ($_ENV['SQLSRV_PORT'] ?? 1433),
                 'database' => $_ENV['SQLSRV_DATABASE'] ?? 'master',
                 'username' => $_ENV['SQLSRV_USERNAME'] ?? 'sa',
                 'password' => $_ENV['SQLSRV_PASSWORD'] ?? 'YourStrong@Passw0rd',
@@ -204,7 +204,7 @@ describe('Database Drivers Integration', function () {
             $config = [
                 'driver' => 'mysql', // MariaDB uses mysql driver
                 'host' => $_ENV['MARIADB_HOST'] ?? 'localhost',
-                'port' => (int)($_ENV['MARIADB_PORT'] ?? 3306),
+                'port' => (int) ($_ENV['MARIADB_PORT'] ?? 3306),
                 'database' => $_ENV['MARIADB_DATABASE'] ?? 'test',
                 'username' => $_ENV['MARIADB_USERNAME'] ?? 'root',
                 'password' => $_ENV['MARIADB_PASSWORD'] ?? '',

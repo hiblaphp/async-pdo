@@ -243,21 +243,25 @@ class DatabaseConfigFactory
         $host = isset($parsed['host']) && is_string($parsed['host']) ? $parsed['host'] : 'localhost';
         $port = isset($parsed['port']) && is_int($parsed['port']) ? $parsed['port'] : null;
         $database = isset($parsed['path']) && is_string($parsed['path']) ? ltrim($parsed['path'], '/') : '';
-        $username = isset($parsed['user']) && is_string($parsed['user']) ? $parsed['user'] : '';
-        $password = isset($parsed['pass']) && is_string($parsed['pass']) ? $parsed['pass'] : '';
+        $username = isset($parsed['user']) && is_string($parsed['user']) ? urldecode($parsed['user']) : '';
+        $password = isset($parsed['pass']) && is_string($parsed['pass']) ? urldecode($parsed['pass']) : '';
 
         $options = [];
         if (isset($parsed['query']) && is_string($parsed['query'])) {
             parse_str($parsed['query'], $queryParams);
             foreach ($queryParams as $key => $value) {
-                if (! is_string($key)) {
+                if (!is_string($key) || !str_starts_with($key, 'pdo_')) {
                     continue;
                 }
-                if (str_starts_with($key, 'pdo_')) {
-                    $constantName = PDO::class.'::'.strtoupper(substr($key, 4));
-                    if (defined($constantName)) {
-                        $options[constant($constantName)] = $value;
-                    }
+
+                $constantName = PDO::class . '::' . strtoupper(substr($key, 4));
+                if (!defined($constantName)) {
+                    continue;
+                }
+
+                $constantValue = constant($constantName);
+                if (is_int($constantValue)) {
+                    $options[$constantValue] = $value;
                 }
             }
         }

@@ -2,9 +2,9 @@
 
 namespace Hibla\AsyncPDO;
 
-use PDO;
 use Hibla\AsyncPDO\Manager\PoolManager;
 use Hibla\Promise\Interfaces\PromiseInterface;
+use PDO;
 use Throwable;
 
 /**

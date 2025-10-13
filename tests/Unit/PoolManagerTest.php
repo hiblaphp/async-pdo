@@ -11,7 +11,6 @@ function getTestConfig(): array
     ];
 }
 
-
 describe('Constructor', function () {
     it('creates a pool with valid configuration', function () {
         $pool = new PoolManager(getTestConfig(), 5);
@@ -21,7 +20,8 @@ describe('Constructor', function () {
             ->and($stats['active_connections'])->toBe(0)
             ->and($stats['pooled_connections'])->toBe(0)
             ->and($stats['waiting_requests'])->toBe(0)
-            ->and($stats['config_validated'])->toBeTrue();
+            ->and($stats['config_validated'])->toBeTrue()
+        ;
     });
 
     it('uses default max size of 10', function () {
@@ -32,37 +32,43 @@ describe('Constructor', function () {
     });
 
     it('throws exception for empty configuration', function () {
-        expect(fn() => new PoolManager([]))
-            ->toThrow(InvalidArgumentException::class, 'Database configuration cannot be empty');
+        expect(fn () => new PoolManager([]))
+            ->toThrow(InvalidArgumentException::class, 'Database configuration cannot be empty')
+        ;
     });
 
     it('throws exception for missing driver', function () {
-        expect(fn() => new PoolManager(['database' => 'test.db']))
-            ->toThrow(InvalidArgumentException::class, "Database configuration field 'driver' must be a non-empty string");
+        expect(fn () => new PoolManager(['database' => 'test.db']))
+            ->toThrow(InvalidArgumentException::class, "Database configuration field 'driver' must be a non-empty string")
+        ;
     });
 
     it('throws exception for empty driver', function () {
-        expect(fn() => new PoolManager(['driver' => '']))
-            ->toThrow(InvalidArgumentException::class, "Database configuration field 'driver' must be a non-empty string");
+        expect(fn () => new PoolManager(['driver' => '']))
+            ->toThrow(InvalidArgumentException::class, "Database configuration field 'driver' must be a non-empty string")
+        ;
     });
 
     it('throws exception for MySQL without required fields', function () {
-        expect(fn() => new PoolManager(['driver' => 'mysql']))
-            ->toThrow(InvalidArgumentException::class, "Database configuration field 'host' cannot be empty for driver 'mysql'");
+        expect(fn () => new PoolManager(['driver' => 'mysql']))
+            ->toThrow(InvalidArgumentException::class, "Database configuration field 'host' cannot be empty for driver 'mysql'")
+        ;
     });
 
     it('throws exception for PostgreSQL without required fields', function () {
-        expect(fn() => new PoolManager(['driver' => 'pgsql', 'host' => 'localhost']))
-            ->toThrow(InvalidArgumentException::class, "Database configuration field 'database' cannot be empty for driver 'pgsql'");
+        expect(fn () => new PoolManager(['driver' => 'pgsql', 'host' => 'localhost']))
+            ->toThrow(InvalidArgumentException::class, "Database configuration field 'database' cannot be empty for driver 'pgsql'")
+        ;
     });
 
     it('throws exception for SQLite without database', function () {
-        expect(fn() => new PoolManager(['driver' => 'sqlite']))
-            ->toThrow(InvalidArgumentException::class, "Database configuration field 'database' cannot be empty for driver 'sqlite'");
+        expect(fn () => new PoolManager(['driver' => 'sqlite']))
+            ->toThrow(InvalidArgumentException::class, "Database configuration field 'database' cannot be empty for driver 'sqlite'")
+        ;
     });
 
     it('throws exception for invalid port type', function () {
-        expect(fn() => new PoolManager([
+        expect(fn () => new PoolManager([
             'driver' => 'mysql',
             'host' => 'localhost',
             'database' => 'test',
@@ -71,7 +77,7 @@ describe('Constructor', function () {
     });
 
     it('throws exception for negative port', function () {
-        expect(fn() => new PoolManager([
+        expect(fn () => new PoolManager([
             'driver' => 'mysql',
             'host' => 'localhost',
             'database' => 'test',
@@ -80,7 +86,7 @@ describe('Constructor', function () {
     });
 
     it('throws exception for invalid options type', function () {
-        expect(fn() => new PoolManager([
+        expect(fn () => new PoolManager([
             'driver' => 'sqlite',
             'database' => ':memory:',
             'options' => 'not an array',
@@ -111,7 +117,8 @@ describe('Connection Acquisition', function () {
 
         $stats = $pool->getStats();
         expect($stats['active_connections'])->toBe(1)
-            ->and($stats['pooled_connections'])->toBe(0);
+            ->and($stats['pooled_connections'])->toBe(0)
+        ;
     });
 
     it('reuses connection from pool', function () {
@@ -129,7 +136,8 @@ describe('Connection Acquisition', function () {
 
         $stats = $pool->getStats();
         expect($stats['pooled_connections'])->toBe(0)
-            ->and($stats['active_connections'])->toBe(1);
+            ->and($stats['active_connections'])->toBe(1)
+        ;
     });
 
     it('creates multiple connections up to max size', function () {
@@ -153,7 +161,6 @@ describe('Connection Acquisition', function () {
     it('queues requests when pool is full', function () {
         $pool = new PoolManager(getTestConfig(), 2);
         $connections = [];
-
 
         for ($i = 0; $i < 2; $i++) {
             $connections[] = $pool->get()->await();
@@ -216,7 +223,8 @@ describe('Connection Release', function () {
 
         $stats = $pool->getStats();
         expect($stats['pooled_connections'])->toBe(1)
-            ->and($stats['active_connections'])->toBe(1);
+            ->and($stats['active_connections'])->toBe(1)
+        ;
     });
 
     it('passes connection to waiting request', function () {
@@ -237,7 +245,8 @@ describe('Connection Release', function () {
 
         $stats = $pool->getStats();
         expect($stats['waiting_requests'])->toBe(0)
-            ->and($stats['pooled_connections'])->toBe(0);
+            ->and($stats['pooled_connections'])->toBe(0)
+        ;
     });
 
     it('handles dead connection by removing from pool', function () {
@@ -386,7 +395,8 @@ describe('Pool Closure', function () {
 
         $stats = $pool->getStats();
         expect($stats['pooled_connections'])->toBe(0)
-            ->and($stats['active_connections'])->toBe(0);
+            ->and($stats['active_connections'])->toBe(0)
+        ;
     });
 
     it('rejects all waiting requests', function () {
@@ -435,7 +445,8 @@ describe('Pool Closure', function () {
         $stats = $pool->getStats();
         expect($stats['active_connections'])->toBe(0)
             ->and($stats['pooled_connections'])->toBe(0)
-            ->and($stats['waiting_requests'])->toBe(0);
+            ->and($stats['waiting_requests'])->toBe(0)
+        ;
     });
 });
 
@@ -446,7 +457,8 @@ describe('Connection Creation', function () {
         $connection = $pool->get()->await();
 
         expect($connection->getAttribute(PDO::ATTR_ERRMODE))
-            ->toBe(PDO::ERRMODE_EXCEPTION);
+            ->toBe(PDO::ERRMODE_EXCEPTION)
+        ;
     });
 
     it('applies custom PDO options', function () {
@@ -463,7 +475,8 @@ describe('Connection Creation', function () {
         $connection = $pool->get()->await();
 
         expect($connection->getAttribute(PDO::ATTR_DEFAULT_FETCH_MODE))
-            ->toBe(PDO::FETCH_ASSOC);
+            ->toBe(PDO::FETCH_ASSOC)
+        ;
     });
 
     it('handles connection failure gracefully', function () {
@@ -475,6 +488,7 @@ describe('Connection Creation', function () {
         $pool = new PoolManager($config, 5);
 
         $exceptionThrown = false;
+
         try {
             $pool->get()->await();
         } catch (RuntimeException $e) {

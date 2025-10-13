@@ -2,12 +2,12 @@
 
 namespace Hibla\AsyncPDO\Manager;
 
-use InvalidArgumentException;
-use PDO;
-use PDOException;
 use Hibla\AsyncPDO\Utilities\DSNBuilder;
 use Hibla\Promise\Interfaces\PromiseInterface;
 use Hibla\Promise\Promise;
+use InvalidArgumentException;
+use PDO;
+use PDOException;
 use RuntimeException;
 use SplQueue;
 use Throwable;

@@ -41,12 +41,6 @@ class DSNBuilder
 
     /**
      * Builds a MySQL DSN string.
-     *
-     * @param  string  $host
-     * @param  int  $port
-     * @param  string  $database
-     * @param  string  $charset
-     * @return string
      */
     public static function buildMySQL(string $host, int $port, string $database, string $charset = 'utf8mb4'): string
     {
@@ -61,11 +55,6 @@ class DSNBuilder
 
     /**
      * Builds a PostgreSQL DSN string.
-     *
-     * @param  string  $host
-     * @param  int  $port
-     * @param  string  $database
-     * @return string
      */
     public static function buildPostgreSQL(string $host, int $port, string $database): string
     {
@@ -79,20 +68,16 @@ class DSNBuilder
 
     /**
      * Builds a SQLite DSN string.
-     *
-     * @param  string  $database
-     * @return string
      */
     public static function buildSQLite(string $database): string
     {
-        return 'sqlite:' . $database;
+        return 'sqlite:'.$database;
     }
 
     /**
      * Builds a SQL Server DSN string from a configuration array.
      *
      * @param  array<string, mixed>  $config
-     * @return string
      */
     public static function buildSqlServer(array $config): string
     {
@@ -100,12 +85,12 @@ class DSNBuilder
         $database = is_scalar($config['database'] ?? null) ? (string) $config['database'] : '';
         $port = is_numeric($config['port'] ?? null) ? (int) $config['port'] : 1433;
 
-        $dsn = 'sqlsrv:server=' . $host;
+        $dsn = 'sqlsrv:server='.$host;
         if ($port !== 1433) {
-            $dsn .= ',' . $port;
+            $dsn .= ','.$port;
         }
         if ($database !== '') {
-            $dsn .= ';Database=' . $database;
+            $dsn .= ';Database='.$database;
         }
 
         return $dsn;
@@ -115,7 +100,6 @@ class DSNBuilder
      * Builds an Oracle DSN string from a configuration array.
      *
      * @param  array<string, mixed>  $config
-     * @return string
      */
     public static function buildOracle(array $config): string
     {
@@ -126,15 +110,15 @@ class DSNBuilder
 
         $dsn = 'oci:dbname=';
         if ($host !== '') {
-            $dsn .= '//' . $host;
+            $dsn .= '//'.$host;
             if ($port > 0) {
-                $dsn .= ':' . $port;
+                $dsn .= ':'.$port;
             }
             $dsn .= '/';
         }
         $dsn .= $database;
         if ($charset !== '') {
-            $dsn .= ';charset=' . $charset;
+            $dsn .= ';charset='.$charset;
         }
 
         return $dsn;
@@ -142,42 +126,32 @@ class DSNBuilder
 
     /**
      * Builds an IBM DB2 DSN string.
-     *
-     * @param  string  $dsn
-     * @return string
      */
     public static function buildIBM(string $dsn): string
     {
-        return 'ibm:' . $dsn;
+        return 'ibm:'.$dsn;
     }
 
     /**
      * Builds an ODBC DSN string.
-     *
-     * @param  string  $dsn
-     * @return string
      */
     public static function buildODBC(string $dsn): string
     {
-        return 'odbc:' . $dsn;
+        return 'odbc:'.$dsn;
     }
 
     /**
      * Builds a Firebird DSN string.
-     *
-     * @param  string  $database
-     * @return string
      */
     public static function buildFirebird(string $database): string
     {
-        return 'firebird:dbname=' . $database;
+        return 'firebird:dbname='.$database;
     }
 
     /**
      * Builds an Informix DSN string from a configuration array.
      *
      * @param  array<string, mixed>  $config
-     * @return string
      */
     public static function buildInformix(array $config): string
     {
@@ -186,10 +160,10 @@ class DSNBuilder
         foreach ($keys as $key) {
             $value = $config[$key] ?? null;
             if (is_scalar($value) && (string) $value !== '') {
-                $dsnParts[] = $key . '=' . (string) $value;
+                $dsnParts[] = $key.'='.(string) $value;
             }
         }
 
-        return 'informix:' . implode(';', $dsnParts);
+        return 'informix:'.implode(';', $dsnParts);
     }
 }

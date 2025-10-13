@@ -9,25 +9,33 @@ use function Hibla\delay;
 
 use Hibla\Task\Task;
 
-describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
+describe('AsyncPDO Cooperative Query Execution - PostgreSQL', function () {
     beforeEach(function () {
+        if (empty($_ENV['PGSQL_HOST'])) {
+            test()->markTestSkipped('PostgreSQL not configured');
+        }
+
         $config = [
-            'driver' => 'sqlite',
-            'database' => 'file::memory:?cache=shared',
+            'driver' => 'pgsql',
+            'host' => $_ENV['PGSQL_HOST'] ?? 'localhost',
+            'port' => (int) ($_ENV['PGSQL_PORT'] ?? 5432),
+            'database' => $_ENV['PGSQL_DATABASE'] ?? 'test',
+            'username' => $_ENV['PGSQL_USERNAME'] ?? 'postgres',
+            'password' => $_ENV['PGSQL_PASSWORD'] ?? 'postgres',
         ];
 
         AsyncPDO::init($config, 20);
 
         Task::run(function () {
             await(AsyncPDO::execute('CREATE TABLE IF NOT EXISTS pool_test (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                data TEXT
+                id SERIAL PRIMARY KEY,
+                data VARCHAR(255)
             )'));
-            await(AsyncPDO::execute('DELETE FROM pool_test'));
+            await(AsyncPDO::execute('TRUNCATE TABLE pool_test RESTART IDENTITY'));
 
             for ($i = 1; $i <= 1000; $i++) {
                 await(AsyncPDO::execute(
-                    'INSERT INTO pool_test (data) VALUES (?)',
+                    'INSERT INTO pool_test (data) VALUES ($1)',
                     ["Row {$i}"]
                 ));
             }
@@ -56,7 +64,7 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
                         COUNT(t2.id) as count
                     FROM pool_test t1
                     LEFT JOIN pool_test t2 ON t2.id <= t1.id
-                    WHERE t1.id BETWEEN '.($i * 100).' AND '.($i * 100 + 50).'
+                    WHERE t1.id BETWEEN '.($i * 100).' AND '.(($i * 100) + 50).'
                     GROUP BY t1.id, t1.data
                     ORDER BY t1.id
                 '));
@@ -70,10 +78,8 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
 
         $maxStartTime = max($startTimes);
         expect($maxStartTime)->toBeLessThan(10);
-
         expect($results)->toEqual([51, 51, 51, 51, 51]);
-
-        expect($totalTime)->toBeLessThan(200);
+        expect($totalTime)->toBeLessThan(300);
     });
 
     it('interleaves DB queries with async delays', function () {
@@ -134,12 +140,12 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
                 $events['query_start'] = microtime(true) - $start;
 
                 $result = await(AsyncPDO::fetchOne('
-                SELECT COUNT(*) as total
-                FROM pool_test t1, pool_test t2
-                WHERE t1.id < '.(100 + ($i * 50)).'
-                AND t2.id < '.(100 + ($i * 50)).'
-                AND t1.id < t2.id
-            '));
+                    SELECT COUNT(*) as total
+                    FROM pool_test t1, pool_test t2
+                    WHERE t1.id < '.(100 + $i * 50).'
+                    AND t2.id < '.(100 + $i * 50).'
+                    AND t1.id < t2.id
+                '));
 
                 $events['query_end'] = microtime(true) - $start;
 
@@ -158,8 +164,6 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
 
             if ($query2_start < $query1_end) {
                 $overlapping = true;
-
-                break;
             }
         }
 
