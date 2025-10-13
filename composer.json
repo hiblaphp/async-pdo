@@ -8,13 +8,37 @@
             "Hibla\\AsyncPDO\\": "src/"
         }
     },
-    "minimum-stability": "dev",
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
     "require": {
         "php": "^8.2",
         "hiblaphp/event-loop": "dev-main",
         "hiblaphp/promise": "dev-main",
         "hiblaphp/async": "dev-main",
-        "hiblaphp/task": "dev-main",
         "ext-pdo": "*"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.10",
+        "pestphp/pest": "^4.0",
+        "mockery/mockery": "^1.6",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "hiblaphp/task": "dev-main"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "scripts": {
+        "test": "./vendor/bin/pest",
+        "test:unit": "./vendor/bin/pest tests/Unit",
+        "test:integration": "./vendor/bin/pest tests/Integration",
+        "format": "./vendor/bin/pint",
+        "format-test": "./vendor/bin/pint --test",
+        "analyze": "./vendor/bin/phpstan analyse"
     }
 }

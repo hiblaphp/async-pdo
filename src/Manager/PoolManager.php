@@ -5,6 +5,7 @@ namespace Hibla\AsyncPDO\Manager;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
+use Hibla\AsyncPDO\Utilities\DSNBuilder;
 use Hibla\Promise\Interfaces\PromiseInterface;
 use Hibla\Promise\Promise;
 use RuntimeException;
@@ -302,7 +303,7 @@ class PoolManager
      */
     private function createConnection(): PDO
     {
-        $dsn = $this->buildDSN($this->dbConfig);
+        $dsn = DSNBuilder::build($this->dbConfig);
         $username = isset($this->dbConfig['username']) && is_string($this->dbConfig['username']) ? $this->dbConfig['username'] : null;
         $password = isset($this->dbConfig['password']) && is_string($this->dbConfig['password']) ? $this->dbConfig['password'] : null;
         $options = isset($this->dbConfig['options']) && is_array($this->dbConfig['options']) ? $this->dbConfig['options'] : [];
@@ -346,118 +347,5 @@ class PoolManager
         } catch (Throwable $e) {
             // isConnectionAlive will catch this on the next cycle.
         }
-    }
-
-    /**
-     * Builds a Data Source Name (DSN) string for PDO from a configuration array.
-     *
-     * @param  array<string, mixed>  $config  The database configuration.
-     * @return string The formatted DSN string.
-     *
-     * @throws PDOException If the driver is not supported.
-     */
-    private function buildDSN(array $config): string
-    {
-        /** @var string $driver */
-        $driver = $config['driver'];
-
-        $host = is_scalar($config['host'] ?? null) ? (string) $config['host'] : '127.0.0.1';
-        $port = is_numeric($config['port'] ?? null) ? (int) $config['port'] : 0;
-        $database = is_scalar($config['database'] ?? null) ? (string) $config['database'] : '';
-        $charset = is_scalar($config['charset'] ?? null) ? (string) $config['charset'] : 'utf8mb4';
-        $dsnVal = is_scalar($config['dsn'] ?? null) ? (string) $config['dsn'] : $database;
-
-        return match (strtolower($driver)) {
-            'mysql' => sprintf(
-                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                $host,
-                $port > 0 ? $port : 3306,
-                $database,
-                $charset
-            ),
-            'pgsql', 'postgresql' => sprintf(
-                'pgsql:host=%s;port=%d;dbname=%s',
-                $host,
-                $port > 0 ? $port : 5432,
-                $database
-            ),
-            'sqlite' => 'sqlite:'.$database,
-            'sqlsrv', 'mssql' => $this->buildSqlSrvDSN($config),
-            'oci', 'oracle' => $this->buildOciDSN($config),
-            'ibm', 'db2' => 'ibm:'.$dsnVal,
-            'odbc' => 'odbc:'.$dsnVal,
-            'firebird' => 'firebird:dbname='.$database,
-            'informix' => $this->buildInformixDSN($config),
-            default => throw new PDOException("Unsupported database driver for pool: {$driver}")
-        };
-    }
-
-    /**
-     * Builds a SQL Server DSN string from a configuration array.
-     *
-     * @param  array<string, mixed>  $config
-     */
-    private function buildSqlSrvDSN(array $config): string
-    {
-        $host = is_scalar($config['host'] ?? null) ? (string) $config['host'] : '';
-        $database = is_scalar($config['database'] ?? null) ? (string) $config['database'] : '';
-        $port = is_numeric($config['port'] ?? null) ? (int) $config['port'] : 1433;
-
-        $dsn = 'sqlsrv:server='.$host;
-        if ($port !== 1433) {
-            $dsn .= ','.$port;
-        }
-        if ($database !== '') {
-            $dsn .= ';Database='.$database;
-        }
-
-        return $dsn;
-    }
-
-    /**
-     * Builds an Oracle DSN string from a configuration array.
-     *
-     * @param  array<string, mixed>  $config
-     */
-    private function buildOciDSN(array $config): string
-    {
-        $database = is_scalar($config['database'] ?? null) ? (string) $config['database'] : '';
-        $charset = is_scalar($config['charset'] ?? null) ? (string) $config['charset'] : '';
-        $host = is_scalar($config['host'] ?? null) ? (string) $config['host'] : '';
-        $port = is_numeric($config['port'] ?? null) ? (int) $config['port'] : 0;
-
-        $dsn = 'oci:dbname=';
-        if ($host !== '') {
-            $dsn .= '//'.$host;
-            if ($port > 0) {
-                $dsn .= ':'.$port;
-            }
-            $dsn .= '/';
-        }
-        $dsn .= $database;
-        if ($charset !== '') {
-            $dsn .= ';charset='.$charset;
-        }
-
-        return $dsn;
-    }
-
-    /**
-     * Builds an Informix DSN string from a configuration array.
-     *
-     * @param  array<string, mixed>  $config
-     */
-    private function buildInformixDSN(array $config): string
-    {
-        $dsnParts = [];
-        $keys = ['host', 'database', 'server', 'protocol', 'service'];
-        foreach ($keys as $key) {
-            $value = $config[$key] ?? null;
-            if (is_scalar($value) && (string) $value !== '') {
-                $dsnParts[] = $key.'='.(string) $value;
-            }
-        }
-
-        return 'informix:'.implode(';', $dsnParts);
     }
 }
