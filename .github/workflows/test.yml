@@ -201,7 +201,7 @@ jobs:
           MYSQL_USERNAME: test_user
           MYSQL_PASSWORD: test_password
           PGSQL_HOST: 127.0.0.1
-          PGSQL_PORT: 5432
+          PGSQL_PORT: 5443
           PGSQL_DATABASE: postgres
           PGSQL_USERNAME: postgres
           PGSQL_PASSWORD: postgres
