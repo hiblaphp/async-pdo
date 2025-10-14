@@ -13,7 +13,8 @@ test('mysql creates correct configuration with defaults', function () {
         ->and($config['password'])->toBe('')
         ->and($config['charset'])->toBe('utf8mb4')
         ->and($config['options'])->toHaveKey(PDO::ATTR_ERRMODE)
-        ->and($config['options'][PDO::ATTR_ERRMODE])->toBe(PDO::ERRMODE_EXCEPTION);
+        ->and($config['options'][PDO::ATTR_ERRMODE])->toBe(PDO::ERRMODE_EXCEPTION)
+    ;
 });
 
 test('mysql merges custom configuration', function () {
@@ -30,7 +31,8 @@ test('mysql merges custom configuration', function () {
         ->and($config['database'])->toBe('custom_db')
         ->and($config['username'])->toBe('custom_user')
         ->and($config['password'])->toBe('custom_pass')
-        ->and($config['driver'])->toBe('mysql');
+        ->and($config['driver'])->toBe('mysql')
+    ;
 });
 
 test('postgresql creates correct configuration with defaults', function () {
@@ -42,7 +44,8 @@ test('postgresql creates correct configuration with defaults', function () {
         ->and($config['database'])->toBe('test')
         ->and($config['username'])->toBe('postgres')
         ->and($config['password'])->toBe('')
-        ->and($config['charset'])->toBe('utf8');
+        ->and($config['charset'])->toBe('utf8')
+    ;
 });
 
 test('postgresql merges custom configuration', function () {
@@ -53,7 +56,8 @@ test('postgresql merges custom configuration', function () {
 
     expect($config['host'])->toBe('pg-host')
         ->and($config['database'])->toBe('mydb')
-        ->and($config['driver'])->toBe('pgsql');
+        ->and($config['driver'])->toBe('pgsql')
+    ;
 });
 
 test('sqlite creates correct configuration', function () {
@@ -62,7 +66,8 @@ test('sqlite creates correct configuration', function () {
     expect($config['driver'])->toBe('sqlite')
         ->and($config['database'])->toBe(':memory:')
         ->and($config['username'])->toBe('')
-        ->and($config['password'])->toBe('');
+        ->and($config['password'])->toBe('')
+    ;
 });
 
 test('sqlite uses default in-memory database', function () {
@@ -77,7 +82,8 @@ test('sqlserver creates correct configuration with defaults', function () {
     expect($config['driver'])->toBe('sqlsrv')
         ->and($config['host'])->toBe('localhost')
         ->and($config['port'])->toBe(1433)
-        ->and($config['database'])->toBe('test');
+        ->and($config['database'])->toBe('test')
+    ;
 });
 
 test('oracle creates correct configuration with defaults', function () {
@@ -87,7 +93,8 @@ test('oracle creates correct configuration with defaults', function () {
         ->and($config['host'])->toBe('localhost')
         ->and($config['port'])->toBe(1521)
         ->and($config['database'])->toBe('xe')
-        ->and($config['charset'])->toBe('AL32UTF8');
+        ->and($config['charset'])->toBe('AL32UTF8')
+    ;
 });
 
 test('ibm creates correct configuration with defaults', function () {
@@ -96,7 +103,8 @@ test('ibm creates correct configuration with defaults', function () {
     expect($config['driver'])->toBe('ibm')
         ->and($config['host'])->toBe('localhost')
         ->and($config['port'])->toBe(50000)
-        ->and($config['database'])->toBe('test');
+        ->and($config['database'])->toBe('test')
+    ;
 });
 
 test('firebird creates correct configuration with defaults', function () {
@@ -107,14 +115,16 @@ test('firebird creates correct configuration with defaults', function () {
         ->and($config['port'])->toBe(3050)
         ->and($config['username'])->toBe('SYSDBA')
         ->and($config['password'])->toBe('masterkey')
-        ->and($config['charset'])->toBe('UTF8');
+        ->and($config['charset'])->toBe('UTF8')
+    ;
 });
 
 test('odbc creates correct configuration with defaults', function () {
     $config = DatabaseConfigFactory::odbc();
 
     expect($config['driver'])->toBe('odbc')
-        ->and($config['dsn'])->toBe('MyDataSource');
+        ->and($config['dsn'])->toBe('MyDataSource')
+    ;
 });
 
 test('informix creates correct configuration with defaults', function () {
@@ -124,7 +134,8 @@ test('informix creates correct configuration with defaults', function () {
         ->and($config['host'])->toBe('localhost')
         ->and($config['database'])->toBe('sysmaster')
         ->and($config['server'])->toBe('ol_informix')
-        ->and($config['protocol'])->toBe('onsoctcp');
+        ->and($config['protocol'])->toBe('onsoctcp')
+    ;
 });
 
 test('fromUrl parses mysql url correctly', function () {
@@ -136,7 +147,8 @@ test('fromUrl parses mysql url correctly', function () {
         ->and($config['port'])->toBe(3306)
         ->and($config['database'])->toBe('mydb')
         ->and($config['username'])->toBe('user')
-        ->and($config['password'])->toBe('pass');
+        ->and($config['password'])->toBe('pass')
+    ;
 });
 
 test('fromUrl parses postgresql url correctly', function () {
@@ -148,7 +160,8 @@ test('fromUrl parses postgresql url correctly', function () {
         ->and($config['port'])->toBe(5432)
         ->and($config['database'])->toBe('production')
         ->and($config['username'])->toBe('pguser')
-        ->and($config['password'])->toBe('pgpass');
+        ->and($config['password'])->toBe('pgpass')
+    ;
 });
 
 test('fromUrl handles url without port', function () {
@@ -156,7 +169,8 @@ test('fromUrl handles url without port', function () {
     $config = DatabaseConfigFactory::fromUrl($url);
 
     expect($config['port'])->toBeNull()
-        ->and($config['host'])->toBe('localhost');
+        ->and($config['host'])->toBe('localhost')
+    ;
 });
 
 test('fromUrl handles url without credentials', function () {
@@ -166,7 +180,8 @@ test('fromUrl handles url without credentials', function () {
     expect($config['username'])->toBe('')
         ->and($config['password'])->toBe('')
         ->and($config['database'])->toBe('mydb')
-        ->and($config['driver'])->toBe('mysql');
+        ->and($config['driver'])->toBe('mysql')
+    ;
 });
 
 test('fromUrl parses pdo options from query string', function () {
@@ -176,7 +191,8 @@ test('fromUrl parses pdo options from query string', function () {
     expect($config['options'])->toHaveKey(PDO::ATTR_ERRMODE)
         ->and($config['options'][PDO::ATTR_ERRMODE])->toBe('2')
         ->and($config['options'])->toHaveKey(PDO::ATTR_TIMEOUT)
-        ->and($config['options'][PDO::ATTR_TIMEOUT])->toBe('30');
+        ->and($config['options'][PDO::ATTR_TIMEOUT])->toBe('30')
+    ;
 });
 
 test('fromUrl ignores non-pdo query parameters', function () {
@@ -184,7 +200,8 @@ test('fromUrl ignores non-pdo query parameters', function () {
     $config = DatabaseConfigFactory::fromUrl($url);
 
     expect($config['options'])->toHaveKey(PDO::ATTR_ERRMODE)
-        ->and($config['options'])->not->toHaveKey('charset');
+        ->and($config['options'])->not->toHaveKey('charset')
+    ;
 });
 
 test('fromUrl uses defaults for missing components', function () {
@@ -193,11 +210,12 @@ test('fromUrl uses defaults for missing components', function () {
 
     expect($config['driver'])->toBe('mysql')
         ->and($config['host'])->toBe('localhost')
-        ->and($config['database'])->toBe('mydb');
+        ->and($config['database'])->toBe('mydb')
+    ;
 });
 
 test('fromUrl throws exception for invalid url', function () {
-    DatabaseConfigFactory::fromUrl("http:///invalid url with spaces");
+    DatabaseConfigFactory::fromUrl('http:///invalid url with spaces');
 })->throws(InvalidArgumentException::class, 'Invalid database URL provided.');
 
 test('all drivers include required PDO options', function () {
@@ -217,7 +235,8 @@ test('all drivers include required PDO options', function () {
         expect($config['options'])->toHaveKey(PDO::ATTR_ERRMODE)
             ->and($config['options'][PDO::ATTR_ERRMODE])->toBe(PDO::ERRMODE_EXCEPTION)
             ->and($config['options'])->toHaveKey(PDO::ATTR_DEFAULT_FETCH_MODE)
-            ->and($config['options'][PDO::ATTR_DEFAULT_FETCH_MODE])->toBe(PDO::FETCH_ASSOC);
+            ->and($config['options'][PDO::ATTR_DEFAULT_FETCH_MODE])->toBe(PDO::FETCH_ASSOC)
+        ;
     }
 });
 

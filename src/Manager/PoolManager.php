@@ -271,7 +271,6 @@ class PoolManager
 
                 break;
             default:
-                // No action needed for drivers that may not require specific fields.
         }
     }
 

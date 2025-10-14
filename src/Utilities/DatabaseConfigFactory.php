@@ -250,12 +250,12 @@ class DatabaseConfigFactory
         if (isset($parsed['query']) && is_string($parsed['query'])) {
             parse_str($parsed['query'], $queryParams);
             foreach ($queryParams as $key => $value) {
-                if (!is_string($key) || !str_starts_with($key, 'pdo_')) {
+                if (! is_string($key) || ! str_starts_with($key, 'pdo_')) {
                     continue;
                 }
 
-                $constantName = PDO::class . '::' . strtoupper(substr($key, 4));
-                if (!defined($constantName)) {
+                $constantName = PDO::class.'::'.strtoupper(substr($key, 4));
+                if (! defined($constantName)) {
                     continue;
                 }
 
