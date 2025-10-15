@@ -2,6 +2,7 @@
 
 namespace Hibla\AsyncPDO\Manager;
 
+use Hibla\AsyncPDO\Exceptions\ConnectionPoolException;
 use Hibla\AsyncPDO\Utilities\DSNBuilder;
 use Hibla\Promise\Interfaces\PromiseInterface;
 use Hibla\Promise\Promise;
@@ -199,7 +200,7 @@ class PoolManager
         while (! $this->waiters->isEmpty()) {
             /** @var Promise<PDO> $promise */
             $promise = $this->waiters->dequeue();
-            $promise->reject(new RuntimeException('Pool is being closed'));
+            $promise->reject(new ConnectionPoolException('Pool is being closed'));
         }
         $this->pool = new SplQueue;
         $this->waiters = new SplQueue;
@@ -313,7 +314,7 @@ class PoolManager
 
             return $pdo;
         } catch (PDOException $e) {
-            throw new RuntimeException('PDO Connection failed: '.$e->getMessage(), (int) $e->getCode(), $e);
+            throw new ConnectionPoolException('PDO Connection failed: '.$e->getMessage(), (int) $e->getCode(), $e);
         }
     }
 
