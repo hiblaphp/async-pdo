@@ -187,30 +187,54 @@ final class AsyncPDO
      * Executes multiple operations within a database transaction.
      *
      * Automatically handles transaction begin/commit/rollback. If the callback
-     * throws an exception, the transaction is rolled back automatically.
+     * throws an exception, the transaction is rolled back automatically and
+     * retried up to the specified number of attempts.
      *
      * @param  callable(PDO): mixed  $callback  Transaction callback receiving PDO instance
+     * @param  int  $attempts  Number of times to attempt the transaction (default: 1)
      * @return PromiseInterface<mixed> Promise resolving to callback's return value
      *
      * @throws \RuntimeException If AsyncPDO is not initialized
-     * @throws \PDOException If transaction operations fail
-     * @throws Throwable Any exception thrown by the callback (after rollback)
+     * @throws \PDOException If transaction operations fail after all attempts
+     * @throws Throwable Any exception thrown by the callback after all attempts (after rollback)
      */
-    public static function transaction(callable $callback): PromiseInterface
+    public static function transaction(callable $callback, int $attempts = 1): PromiseInterface
     {
-        return self::run(function (PDO $pdo) use ($callback) {
-            $pdo->beginTransaction();
-
-            try {
-                $result = $callback($pdo);
-                $pdo->commit();
-
-                return $result;
-            } catch (Throwable $e) {
-                $pdo->rollBack();
-
-                throw $e;
+        return async(function () use ($callback, $attempts) {
+            if ($attempts < 1) {
+                throw new \InvalidArgumentException('Transaction attempts must be at least 1.');
             }
+
+            $lastException = null;
+
+            for ($currentAttempt = 1; $currentAttempt <= $attempts; $currentAttempt++) {
+                try {
+                    return await(self::run(function (PDO $pdo) use ($callback) {
+                        $pdo->beginTransaction();
+
+                        try {
+                            $result = $callback($pdo);
+                            $pdo->commit();
+
+                            return $result;
+                        } catch (Throwable $e) {
+                            $pdo->rollBack();
+
+                            throw $e;
+                        }
+                    }));
+                } catch (Throwable $e) {
+                    $lastException = $e;
+
+                    if ($currentAttempt < $attempts) {
+                        continue;
+                    }
+
+                    throw $e;
+                }
+            }
+
+            throw $lastException;
         });
     }
 
