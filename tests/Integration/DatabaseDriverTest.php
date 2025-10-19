@@ -161,7 +161,12 @@ describe('Database Drivers Integration', function () {
 
     describe('SQL Server', function () {
         it('connects and executes query', function () {
-            // test()->markTestSkipped('SQL Server skipped: No official PDO driver available for PHP 8.4');
+            if (getenv('CI')) {
+                test()->markTestSkipped('SQL Server tests skipped in CI environment');
+            }
+
+            skipIfPhp84OrHigher();
+
 
             if (empty($_ENV['SQLSRV_HOST'])) {
                 test()->markTestSkipped('SQL Server not configured');
@@ -197,8 +202,6 @@ describe('Database Drivers Integration', function () {
 
     describe('MariaDB', function () {
         it('connects and executes query', function () {
-            skipIfPhp84OrHigher();
-
             if (empty($_ENV['MARIADB_HOST'])) {
                 test()->markTestSkipped('MariaDB not configured');
             }

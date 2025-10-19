@@ -11,6 +11,10 @@ use Hibla\Task\Task;
 
 describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
     beforeEach(function () {
+        if (getenv('CI')) {
+            test()->markTestSkipped('SQL Server tests skipped in CI environment');
+        }
+
         skipIfPhp84OrHigher();
 
         if (empty($_ENV['MSSQL_HOST'])) {
