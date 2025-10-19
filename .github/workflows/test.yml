@@ -55,6 +55,21 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
+      
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Testpassword123@"
+          MSSQL_PID: "Developer"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Testpassword123@' -C -Q 'SELECT 1' || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+          --health-start-period=10s
     
     steps:
       - uses: actions/checkout@v4
@@ -63,16 +78,37 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo, pdo_sqlite, pdo_mysql, pdo_pgsql
+          extensions: pdo, pdo_sqlite, pdo_mysql, pdo_pgsql, pdo_odbc
           coverage: xdebug
       
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
       
       - name: Wait for databases
-        run: sleep 10
+        run: sleep 15
       
       - name: Run all tests
+        env:
+          MYSQL_HOST: localhost
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: test
+          MYSQL_USERNAME: test_user
+          MYSQL_PASSWORD: test_password
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5443
+          POSTGRES_DATABASE: postgres
+          POSTGRES_USERNAME: postgres
+          POSTGRES_PASSWORD: postgres
+          MARIADB_HOST: localhost
+          MARIADB_PORT: 3307
+          MARIADB_DATABASE: test
+          MARIADB_USERNAME: test_user
+          MARIADB_PASSWORD: test_password
+          MSSQL_HOST: localhost
+          MSSQL_PORT: 1433
+          MSSQL_DATABASE: master
+          MSSQL_USERNAME: sa
+          MSSQL_PASSWORD: "Testpassword123@"
         run: ./vendor/bin/pest
 
       - name: Run Laravel pint

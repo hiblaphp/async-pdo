@@ -49,7 +49,7 @@ final class AsyncPDO
         }
 
         self::$pool = new PoolManager($dbConfig, $poolSize);
-        self::$transactionCallbacks = new WeakMap();
+        self::$transactionCallbacks = new WeakMap;
         self::$isInitialized = true;
     }
 
@@ -73,7 +73,6 @@ final class AsyncPDO
      * Registers a callback to execute when the current transaction commits.
      *
      * @param  callable(): void  $callback  Callback to execute on commit
-     * @return void
      *
      * @throws \RuntimeException If not currently in a transaction or if AsyncPDO is not initialized
      */
@@ -85,7 +84,7 @@ final class AsyncPDO
             throw new \RuntimeException('onCommit() can only be called within a transaction.');
         }
 
-        if (self::$transactionCallbacks === null || !isset(self::$transactionCallbacks[$pdo])) {
+        if (self::$transactionCallbacks === null || ! isset(self::$transactionCallbacks[$pdo])) {
             throw new \RuntimeException('Transaction state not found.');
         }
 
@@ -96,7 +95,7 @@ final class AsyncPDO
         self::$transactionCallbacks[$pdo] = [
             'commit' => $commitCallbacks,
             'rollback' => $transactionData['rollback'],
-            'fiber' => $transactionData['fiber']
+            'fiber' => $transactionData['fiber'],
         ];
     }
 
@@ -104,7 +103,6 @@ final class AsyncPDO
      * Registers a callback to execute when the current transaction rolls back.
      *
      * @param  callable(): void  $callback  Callback to execute on rollback
-     * @return void
      *
      * @throws \RuntimeException If not currently in a transaction or if AsyncPDO is not initialized
      */
@@ -116,7 +114,7 @@ final class AsyncPDO
             throw new \RuntimeException('onRollback() can only be called within a transaction.');
         }
 
-        if (self::$transactionCallbacks === null || !isset(self::$transactionCallbacks[$pdo])) {
+        if (self::$transactionCallbacks === null || ! isset(self::$transactionCallbacks[$pdo])) {
             throw new \RuntimeException('Transaction state not found.');
         }
 
@@ -127,7 +125,7 @@ final class AsyncPDO
         self::$transactionCallbacks[$pdo] = [
             'commit' => $transactionData['commit'],
             'rollback' => $rollbackCallbacks,
-            'fiber' => $transactionData['fiber']
+            'fiber' => $transactionData['fiber'],
         ];
     }
 
@@ -287,7 +285,7 @@ final class AsyncPDO
                         $initialState = [
                             'commit' => [],
                             'rollback' => [],
-                            'fiber' => $currentFiber
+                            'fiber' => $currentFiber,
                         ];
 
                         // @phpstan-ignore-next-line
@@ -365,7 +363,6 @@ final class AsyncPDO
      *
      * @param  PDO  $pdo  PDO instance
      * @param  string  $type  'commit' or 'rollback'
-     * @return void
      *
      * @throws Throwable If any callback throws an exception
      *
@@ -373,7 +370,7 @@ final class AsyncPDO
      */
     private static function executeCallbacks(PDO $pdo, string $type): void
     {
-        if (self::$transactionCallbacks === null || !isset(self::$transactionCallbacks[$pdo])) {
+        if (self::$transactionCallbacks === null || ! isset(self::$transactionCallbacks[$pdo])) {
             return;
         }
 
@@ -404,14 +401,13 @@ final class AsyncPDO
     /**
      * Ensures the transaction callbacks WeakMap is initialized.
      *
-     * @return void
      *
      * @internal This method is for internal use only
      */
     private static function ensureTransactionCallbacksInitialized(): void
     {
         if (self::$transactionCallbacks === null) {
-            self::$transactionCallbacks = new WeakMap();
+            self::$transactionCallbacks = new WeakMap;
         }
     }
 

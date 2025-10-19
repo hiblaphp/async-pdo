@@ -34,5 +34,12 @@
         <env name="MARIADB_DATABASE" value="test" force="true"/>
         <env name="MARIADB_USERNAME" value="test_user" force="true"/>
         <env name="MARIADB_PASSWORD" value="test_password" force="true"/>
+
+        <!-- Microsoft SQL Server -->
+        <env name="MSSQL_HOST" value="127.0.0.1" force="true"/>
+        <env name="MSSQL_PORT" value="1433" force="true"/>
+        <env name="MSSQL_DATABASE" value="master" force="true"/>
+        <env name="MSSQL_USERNAME" value="sa" force="true"/>
+        <env name="MSSQL_PASSWORD" value="Testpassword123@" force="true"/>
     </php>
 </phpunit>

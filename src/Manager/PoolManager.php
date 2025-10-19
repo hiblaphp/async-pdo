@@ -56,10 +56,14 @@ class PoolManager
      * @param  array<string, mixed>  $dbConfig  The database configuration array, compatible with PDO.
      * @param  int  $maxSize  The maximum number of concurrent connections allowed.
      *
-     * @throws InvalidArgumentException When the database configuration is invalid.
+     * @throws InvalidArgumentException When the database configuration is invalid or maxSize is less than 1.
      */
     public function __construct(array $dbConfig, int $maxSize = 10)
     {
+        if ($maxSize < 1) {
+            throw new InvalidArgumentException('Pool size must be at least 1');
+        }
+
         $this->validateDbConfig($dbConfig);
         $this->configValidated = true;
         $this->dbConfig = $dbConfig;
