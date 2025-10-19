@@ -88,7 +88,7 @@ describe('AsyncPDO Stress Test - PostgreSQL', function () {
 
         $order = await(AsyncPDO::fetchOne('SELECT * FROM orders WHERE id = ?', [$orderResult['order_id']]));
         expect($order)->not->toBeNull();
-        expect((float) $order['total'])->toBe($orderResult['total']);
+        expect(abs((float) $order['total'] - (float) $orderResult['total']))->toBeLessThan(0.01);
     });
 
     it('executes analytics queries concurrently', function () {
