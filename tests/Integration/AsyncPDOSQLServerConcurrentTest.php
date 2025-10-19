@@ -11,10 +11,6 @@ use Hibla\Task\Task;
 
 describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
     beforeEach(function () {
-        if (getenv('CI')) {
-            test()->markTestSkipped('SQL Server tests skipped in CI environment');
-        }
-
         skipIfPhp84OrHigher();
 
         if (empty($_ENV['MSSQL_HOST'])) {
@@ -55,6 +51,10 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
     });
 
     it('executes queries cooperatively with interleaving starts', function () {
+        if (getenv('CI')) {
+            test()->markTestSkipped('SQL Server tests skipped in CI environment');
+        }
+
         $start = microtime(true);
         $startTimes = [];
         $promises = [];
@@ -71,7 +71,7 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
                         COUNT(t2.id) as count
                     FROM pool_test t1
                     LEFT JOIN pool_test t2 ON t2.id <= t1.id
-                    WHERE t1.id BETWEEN '.($i * 100).' AND '.(($i * 100) + 50).'
+                    WHERE t1.id BETWEEN ' . ($i * 100) . ' AND ' . (($i * 100) + 50) . '
                     GROUP BY t1.id, t1.data
                     ORDER BY t1.id
                 '));
@@ -90,6 +90,9 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
     });
 
     it('interleaves DB queries with async delays', function () {
+        if (getenv('CI')) {
+            test()->markTestSkipped('SQL Server tests skipped in CI environment');
+        }
         $start = microtime(true);
         $timeline = [];
         $promises = [];
@@ -101,7 +104,7 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
 
                 $result = await(AsyncPDO::query('
                     SELECT * FROM pool_test 
-                    WHERE id BETWEEN '.($i * 100).' AND '.(($i * 100) + 50).'
+                    WHERE id BETWEEN ' . ($i * 100) . ' AND ' . (($i * 100) + 50) . '
                 '));
 
                 $endTime = microtime(true);
@@ -135,6 +138,10 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
     });
 
     it('shows query execution overlap in timestamps', function () {
+        if (getenv('CI')) {
+            test()->markTestSkipped('SQL Server tests skipped in CI environment');
+        }
+
         $start = microtime(true);
         $timeline = [];
         $promises = [];
@@ -151,8 +158,8 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
                 $result = await(AsyncPDO::fetchOne('
                     SELECT COUNT(*) as total
                     FROM pool_test t1, pool_test t2
-                    WHERE t1.id < '.(100 + $i * 50).'
-                    AND t2.id < '.(100 + $i * 50).'
+                    WHERE t1.id < ' . (100 + $i * 50) . '
+                    AND t2.id < ' . (100 + $i * 50) . '
                     AND t1.id < t2.id
                 '));
 
