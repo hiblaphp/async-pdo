@@ -9,14 +9,15 @@ use function Hibla\delay;
 
 use Hibla\Task\Task;
 
+if (getenv('CI')) {
+    describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
+        test('skipped in CI')->skip('SQL Server tests skipped in CI environment');
+    });
+    return;
+}
+
 describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
-    if (getenv('CI')) {
-        test()->markTestSkipped('SQL Server tests skipped in CI environment');
-    }
     beforeEach(function () {
-        if (getenv('CI')) {
-            test()->markTestSkipped('SQL Server tests skipped in CI environment');
-        }
         skipIfPhp84OrHigher();
 
         if (empty($_ENV['MSSQL_HOST'])) {
@@ -38,9 +39,9 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
             await(AsyncPDO::execute('IF OBJECT_ID(\'pool_test\', \'U\') IS NOT NULL DROP TABLE pool_test'));
 
             await(AsyncPDO::execute('CREATE TABLE pool_test (
-            id INT PRIMARY KEY IDENTITY(1,1),
-            data VARCHAR(255)
-        )'));
+                id INT PRIMARY KEY IDENTITY(1,1),
+                data VARCHAR(255)
+            )'));
 
             for ($i = 1; $i <= 1000; $i++) {
                 await(AsyncPDO::execute(
@@ -57,10 +58,6 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
     });
 
     it('executes queries cooperatively with interleaving starts', function () {
-        if (getenv('CI')) {
-            test()->markTestSkipped('SQL Server tests skipped in CI environment');
-        }
-
         $start = microtime(true);
         $startTimes = [];
         $promises = [];
@@ -96,9 +93,6 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
     });
 
     it('interleaves DB queries with async delays', function () {
-        if (getenv('CI')) {
-            test()->markTestSkipped('SQL Server tests skipped in CI environment');
-        }
         $start = microtime(true);
         $timeline = [];
         $promises = [];
@@ -144,10 +138,6 @@ describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
     });
 
     it('shows query execution overlap in timestamps', function () {
-        if (getenv('CI')) {
-            test()->markTestSkipped('SQL Server tests skipped in CI environment');
-        }
-
         $start = microtime(true);
         $timeline = [];
         $promises = [];
