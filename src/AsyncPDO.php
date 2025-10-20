@@ -49,7 +49,7 @@ final class AsyncPDO
         }
 
         self::$pool = new PoolManager($dbConfig, $poolSize);
-        self::$transactionCallbacks = new WeakMap;
+        self::$transactionCallbacks = new WeakMap();
         self::$isInitialized = true;
     }
 
@@ -407,7 +407,7 @@ final class AsyncPDO
     private static function ensureTransactionCallbacksInitialized(): void
     {
         if (self::$transactionCallbacks === null) {
-            self::$transactionCallbacks = new WeakMap;
+            self::$transactionCallbacks = new WeakMap();
         }
     }
 

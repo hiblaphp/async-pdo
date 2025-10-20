@@ -167,7 +167,6 @@ describe('Database Drivers Integration', function () {
 
             skipIfPhp84OrHigher();
 
-
             if (empty($_ENV['SQLSRV_HOST'])) {
                 test()->markTestSkipped('SQL Server not configured');
             }

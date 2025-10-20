@@ -13,6 +13,7 @@ if (getenv('CI')) {
     describe('AsyncPDO Cooperative Query Execution - SQL Server', function () {
         test('skipped in CI')->skip('SQL Server tests skipped in CI environment');
     });
+
     return;
 }
 
