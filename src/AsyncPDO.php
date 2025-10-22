@@ -2,32 +2,26 @@
 
 namespace Hibla\AsyncPDO;
 
-use Hibla\AsyncPDO\Manager\PoolManager;
 use Hibla\Promise\Interfaces\PromiseInterface;
 use PDO;
-use Throwable;
-use WeakMap;
 
 /**
  * Asynchronous PDO API providing fiber-based database operations.
  *
- * This class serves as the main entry point for async database operations,
- * managing connection pooling and providing convenient methods for common
- * database tasks like queries, transactions, and batch operations.
+ * This class serves as a singleton facade over AsyncPDOConnection,
+ * providing convenient static methods for common database tasks in
+ * single-database applications.
  */
 final class AsyncPDO
 {
-    /** @var PoolManager|null Connection pool instance */
-    private static ?PoolManager $pool = null;
+    /** @var AsyncPDOConnection|null Underlying connection instance */
+    private static ?AsyncPDOConnection $instance = null;
 
     /** @var bool Tracks initialization state */
     private static bool $isInitialized = false;
 
-    /** @var WeakMap<PDO, array{commit: list<callable(): void>, rollback: list<callable(): void>, fiber: \Fiber<mixed, mixed, mixed, mixed>|null}>|null Transaction callbacks using WeakMap */
-    private static ?WeakMap $transactionCallbacks = null;
-
     /**
-     * Initializes the entire async database system.
+     * Initializes the async database system.
      *
      * This is the single point of configuration and must be called before
      * using any other AsyncPDO methods. Multiple calls are ignored.
@@ -48,25 +42,23 @@ final class AsyncPDO
             return;
         }
 
-        self::$pool = new PoolManager($dbConfig, $poolSize);
-        self::$transactionCallbacks = new WeakMap();
+        self::$instance = new AsyncPDOConnection($dbConfig, $poolSize);
         self::$isInitialized = true;
     }
 
     /**
-     * Resets both this facade and the underlying event loop for clean testing.
+     * Resets the singleton instance for clean testing.
      *
      * Closes all database connections and clears the pool. Primarily used
      * in testing scenarios to ensure clean state between tests.
      */
     public static function reset(): void
     {
-        if (self::$pool !== null) {
-            self::$pool->close();
+        if (self::$instance !== null) {
+            self::$instance->reset();
         }
-        self::$pool = null;
+        self::$instance = null;
         self::$isInitialized = false;
-        self::$transactionCallbacks = null;
     }
 
     /**
@@ -78,25 +70,7 @@ final class AsyncPDO
      */
     public static function onCommit(callable $callback): void
     {
-        $pdo = self::getCurrentTransactionPDO();
-
-        if ($pdo === null) {
-            throw new \RuntimeException('onCommit() can only be called within a transaction.');
-        }
-
-        if (self::$transactionCallbacks === null || ! isset(self::$transactionCallbacks[$pdo])) {
-            throw new \RuntimeException('Transaction state not found.');
-        }
-
-        $transactionData = self::$transactionCallbacks[$pdo];
-        $commitCallbacks = $transactionData['commit'];
-        $commitCallbacks[] = $callback;
-
-        self::$transactionCallbacks[$pdo] = [
-            'commit' => $commitCallbacks,
-            'rollback' => $transactionData['rollback'],
-            'fiber' => $transactionData['fiber'],
-        ];
+        self::getInstance()->onCommit($callback);
     }
 
     /**
@@ -108,25 +82,7 @@ final class AsyncPDO
      */
     public static function onRollback(callable $callback): void
     {
-        $pdo = self::getCurrentTransactionPDO();
-
-        if ($pdo === null) {
-            throw new \RuntimeException('onRollback() can only be called within a transaction.');
-        }
-
-        if (self::$transactionCallbacks === null || ! isset(self::$transactionCallbacks[$pdo])) {
-            throw new \RuntimeException('Transaction state not found.');
-        }
-
-        $transactionData = self::$transactionCallbacks[$pdo];
-        $rollbackCallbacks = $transactionData['rollback'];
-        $rollbackCallbacks[] = $callback;
-
-        self::$transactionCallbacks[$pdo] = [
-            'commit' => $transactionData['commit'],
-            'rollback' => $rollbackCallbacks,
-            'fiber' => $transactionData['fiber'],
-        ];
+        self::getInstance()->onRollback($callback);
     }
 
     /**
@@ -144,20 +100,7 @@ final class AsyncPDO
      */
     public static function run(callable $callback): PromiseInterface
     {
-        // @phpstan-ignore-next-line
-        return async(function () use ($callback): mixed {
-            $pdo = null;
-
-            try {
-                $pdo = await(self::getPool()->get());
-
-                return $callback($pdo);
-            } finally {
-                if ($pdo !== null) {
-                    self::getPool()->release($pdo);
-                }
-            }
-        });
+        return self::getInstance()->run($callback);
     }
 
     /**
@@ -172,15 +115,7 @@ final class AsyncPDO
      */
     public static function query(string $sql, array $params = []): PromiseInterface
     {
-        return self::run(function (PDO $pdo) use ($sql, $params): array {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-
-            /** @var array<int, array<string, mixed>> */
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            return $result;
-        });
+        return self::getInstance()->query($sql, $params);
     }
 
     /**
@@ -195,15 +130,7 @@ final class AsyncPDO
      */
     public static function fetchOne(string $sql, array $params = []): PromiseInterface
     {
-        return self::run(function (PDO $pdo) use ($sql, $params): array|false {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-
-            /** @var array<string, mixed>|false */
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            return $result;
-        });
+        return self::getInstance()->fetchOne($sql, $params);
     }
 
     /**
@@ -218,13 +145,7 @@ final class AsyncPDO
      */
     public static function execute(string $sql, array $params = []): PromiseInterface
     {
-        // @phpstan-ignore-next-line
-        return self::run(function (PDO $pdo) use ($sql, $params): int {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-
-            return $stmt->rowCount();
-        });
+        return self::getInstance()->execute($sql, $params);
     }
 
     /**
@@ -241,12 +162,7 @@ final class AsyncPDO
      */
     public static function fetchValue(string $sql, array $params = []): PromiseInterface
     {
-        return self::run(function (PDO $pdo) use ($sql, $params): mixed {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-
-            return $stmt->fetch(PDO::FETCH_COLUMN);
-        });
+        return self::getInstance()->fetchValue($sql, $params);
     }
 
     /**
@@ -262,172 +178,54 @@ final class AsyncPDO
      *
      * @throws \RuntimeException If AsyncPDO is not initialized
      * @throws \PDOException If transaction operations fail after all attempts
-     * @throws Throwable Any exception thrown by the callback after all attempts (after rollback)
+     * @throws \Throwable Any exception thrown by the callback after all attempts (after rollback)
      */
     public static function transaction(callable $callback, int $attempts = 1): PromiseInterface
     {
-        return async(function () use ($callback, $attempts) {
-            if ($attempts < 1) {
-                throw new \InvalidArgumentException('Transaction attempts must be at least 1.');
-            }
-
-            /** @var Throwable|null $lastException */
-            $lastException = null;
-
-            for ($currentAttempt = 1; $currentAttempt <= $attempts; $currentAttempt++) {
-                try {
-                    return await(self::run(function (PDO $pdo) use ($callback) {
-                        $currentFiber = \Fiber::getCurrent();
-
-                        self::ensureTransactionCallbacksInitialized();
-
-                        /** @var array{commit: list<callable(): void>, rollback: list<callable(): void>, fiber: \Fiber<mixed, mixed, mixed, mixed>|null} $initialState */
-                        $initialState = [
-                            'commit' => [],
-                            'rollback' => [],
-                            'fiber' => $currentFiber,
-                        ];
-
-                        // @phpstan-ignore-next-line
-                        self::$transactionCallbacks[$pdo] = $initialState;
-
-                        $pdo->beginTransaction();
-
-                        try {
-                            $result = $callback($pdo);
-                            $pdo->commit();
-
-                            self::executeCallbacks($pdo, 'commit');
-
-                            return $result;
-                        } catch (Throwable $e) {
-                            if ($pdo->inTransaction()) {
-                                $pdo->rollBack();
-                            }
-
-                            self::executeCallbacks($pdo, 'rollback');
-
-                            throw $e;
-                        } finally {
-                            if (isset(self::$transactionCallbacks[$pdo])) {
-                                unset(self::$transactionCallbacks[$pdo]);
-                            }
-                        }
-                    }));
-                } catch (Throwable $e) {
-                    $lastException = $e;
-
-                    if ($currentAttempt < $attempts) {
-                        continue;
-                    }
-
-                    throw $e;
-                }
-            }
-
-            if ($lastException !== null) {
-                throw $lastException;
-            }
-
-            throw new \RuntimeException('Transaction failed without exception.');
-        });
+        return self::getInstance()->transaction($callback, $attempts);
     }
 
     /**
-     * Gets the current transaction's PDO instance if in a transaction within the current fiber.
+     * Gets the underlying AsyncPDOConnection instance.
      *
-     * @return PDO|null PDO instance or null if not in transaction
-     *
-     * @internal This method is for internal use only
-     */
-    private static function getCurrentTransactionPDO(): ?PDO
-    {
-        if (self::$transactionCallbacks === null) {
-            return null;
-        }
-
-        $currentFiber = \Fiber::getCurrent();
-
-        // Iterate through all active transactions to find the one in the current fiber
-        foreach (self::$transactionCallbacks as $pdo => $data) {
-            if ($data['fiber'] === $currentFiber) {
-                return $pdo;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Executes registered callbacks for commit or rollback.
-     *
-     * @param  PDO  $pdo  PDO instance
-     * @param  string  $type  'commit' or 'rollback'
-     *
-     * @throws Throwable If any callback throws an exception
-     *
-     * @internal This method is for internal use only
-     */
-    private static function executeCallbacks(PDO $pdo, string $type): void
-    {
-        if (self::$transactionCallbacks === null || ! isset(self::$transactionCallbacks[$pdo])) {
-            return;
-        }
-
-        $transactionData = self::$transactionCallbacks[$pdo];
-
-        if ($type !== 'commit' && $type !== 'rollback') {
-            return;
-        }
-
-        $callbacks = $transactionData[$type];
-
-        /** @var list<Throwable> $exceptions */
-        $exceptions = [];
-
-        foreach ($callbacks as $callback) {
-            try {
-                $callback();
-            } catch (Throwable $e) {
-                $exceptions[] = $e;
-            }
-        }
-
-        if (count($exceptions) > 0) {
-            throw $exceptions[0];
-        }
-    }
-
-    /**
-     * Ensures the transaction callbacks WeakMap is initialized.
-     *
-     *
-     * @internal This method is for internal use only
-     */
-    private static function ensureTransactionCallbacksInitialized(): void
-    {
-        if (self::$transactionCallbacks === null) {
-            self::$transactionCallbacks = new WeakMap();
-        }
-    }
-
-    /**
-     * Gets the connection pool instance.
-     *
-     * @return PoolManager The initialized connection pool
+     * @return AsyncPDOConnection The initialized connection instance
      *
      * @throws \RuntimeException If AsyncPDO has not been initialized
      *
      * @internal This method is for internal use only
      */
-    public static function getPool(): PoolManager
+    private static function getInstance(): AsyncPDOConnection
     {
-        if (! self::$isInitialized || self::$pool === null) {
+        if (!self::$isInitialized || self::$instance === null) {
             throw new \RuntimeException(
                 'AsyncPDO has not been initialized. Please call AsyncPDO::init() at application startup.'
             );
         }
 
-        return self::$pool;
+        return self::$instance;
+    }
+
+    /**
+     * Gets statistics about the connection pool.
+     *
+     * @return array<string, int|bool> Pool statistics
+     *
+     * @throws \RuntimeException If AsyncPDO has not been initialized
+     */
+    public static function getStats(): array
+    {
+        return self::getInstance()->getStats();
+    }
+
+    /**
+     * Gets the most recently used connection from the pool.
+     *
+     * @return PDO|null The last connection or null if none used yet
+     *
+     * @throws \RuntimeException If AsyncPDO has not been initialized
+     */
+    public static function getLastConnection(): ?PDO
+    {
+        return self::getInstance()->getLastConnection();
     }
 }

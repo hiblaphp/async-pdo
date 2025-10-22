@@ -187,7 +187,7 @@ final class AsyncPDOConnection
      *
      * @throws \PDOException If query execution fails
      */
-    public function fetchFirst(string $sql, array $params = []): PromiseInterface
+    public function fetchOne(string $sql, array $params = []): PromiseInterface
     {
         return $this->run(function (PDO $pdo) use ($sql, $params): array|false {
             $stmt = $pdo->prepare($sql);
