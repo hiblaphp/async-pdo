@@ -2,6 +2,7 @@
 
 namespace Hibla\AsyncPDO;
 
+use Hibla\AsyncPDO\Exceptions\AsyncPDOException;
 use Hibla\Promise\Interfaces\PromiseInterface;
 use PDO;
 
@@ -66,7 +67,7 @@ final class AsyncPDO
      *
      * @param  callable(): void  $callback  Callback to execute on commit
      *
-     * @throws \RuntimeException If not currently in a transaction or if AsyncPDO is not initialized
+     * @throws AsyncPDOException If not currently in a transaction or if AsyncPDO is not initialized
      */
     public static function onCommit(callable $callback): void
     {
@@ -78,7 +79,7 @@ final class AsyncPDO
      *
      * @param  callable(): void  $callback  Callback to execute on rollback
      *
-     * @throws \RuntimeException If not currently in a transaction or if AsyncPDO is not initialized
+     * @throws AsyncPDOException If not currently in a transaction or if AsyncPDO is not initialized
      */
     public static function onRollback(callable $callback): void
     {
@@ -96,7 +97,7 @@ final class AsyncPDO
      * @param  callable(PDO): TResult  $callback  Function that receives PDO instance
      * @return PromiseInterface<TResult> Promise resolving to callback's return value
      *
-     * @throws \RuntimeException If AsyncPDO is not initialized
+     * @throws AsyncPDOException If AsyncPDO is not initialized
      */
     public static function run(callable $callback): PromiseInterface
     {
@@ -110,7 +111,7 @@ final class AsyncPDO
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<array<int, array<string, mixed>>> Promise resolving to array of associative arrays
      *
-     * @throws \RuntimeException If AsyncPDO is not initialized
+     * @throws AsyncPDOException If AsyncPDO is not initialized
      * @throws \PDOException If query execution fails
      */
     public static function query(string $sql, array $params = []): PromiseInterface
@@ -125,7 +126,7 @@ final class AsyncPDO
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<array<string, mixed>|false> Promise resolving to associative array or false if no rows
      *
-     * @throws \RuntimeException If AsyncPDO is not initialized
+     * @throws AsyncPDOException If AsyncPDO is not initialized
      * @throws \PDOException If query execution fails
      */
     public static function fetchOne(string $sql, array $params = []): PromiseInterface
@@ -140,7 +141,7 @@ final class AsyncPDO
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<int> Promise resolving to number of affected rows
      *
-     * @throws \RuntimeException If AsyncPDO is not initialized
+     * @throws AsyncPDOException If AsyncPDO is not initialized
      * @throws \PDOException If statement execution fails
      */
     public static function execute(string $sql, array $params = []): PromiseInterface
@@ -157,7 +158,7 @@ final class AsyncPDO
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<mixed> Promise resolving to scalar value or false if no rows
      *
-     * @throws \RuntimeException If AsyncPDO is not initialized
+     * @throws AsyncPDOException If AsyncPDO is not initialized
      * @throws \PDOException If query execution fails
      */
     public static function fetchValue(string $sql, array $params = []): PromiseInterface
@@ -176,7 +177,7 @@ final class AsyncPDO
      * @param  int  $attempts  Number of times to attempt the transaction (default: 1)
      * @return PromiseInterface<mixed> Promise resolving to callback's return value
      *
-     * @throws \RuntimeException If AsyncPDO is not initialized
+     * @throws AsyncPDOException If AsyncPDO is not initialized
      * @throws \PDOException If transaction operations fail after all attempts
      * @throws \Throwable Any exception thrown by the callback after all attempts (after rollback)
      */
@@ -190,14 +191,14 @@ final class AsyncPDO
      *
      * @return AsyncPDOConnection The initialized connection instance
      *
-     * @throws \RuntimeException If AsyncPDO has not been initialized
+     * @throws AsyncPDOException If AsyncPDO has not been initialized
      *
      * @internal This method is for internal use only
      */
     private static function getInstance(): AsyncPDOConnection
     {
         if (!self::$isInitialized || self::$instance === null) {
-            throw new \RuntimeException(
+            throw new AsyncPDOException(
                 'AsyncPDO has not been initialized. Please call AsyncPDO::init() at application startup.'
             );
         }
@@ -210,7 +211,7 @@ final class AsyncPDO
      *
      * @return array<string, int|bool> Pool statistics
      *
-     * @throws \RuntimeException If AsyncPDO has not been initialized
+     * @throws AsyncPDOException If AsyncPDO has not been initialized
      */
     public static function getStats(): array
     {
@@ -222,7 +223,7 @@ final class AsyncPDO
      *
      * @return PDO|null The last connection or null if none used yet
      *
-     * @throws \RuntimeException If AsyncPDO has not been initialized
+     * @throws AsyncPDOException If AsyncPDO has not been initialized
      */
     public static function getLastConnection(): ?PDO
     {
