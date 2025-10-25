@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Hibla\AsyncPDO\Manager\PoolManager;
 use Hibla\Promise\Interfaces\PromiseInterface;
 

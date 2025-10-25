@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Hibla\AsyncPDO;
 
 use Hibla\AsyncPDO\Manager\PoolManager;
@@ -7,6 +9,9 @@ use Hibla\Promise\Interfaces\PromiseInterface;
 use PDO;
 use Throwable;
 use WeakMap;
+
+use function Hibla\async;
+use function Hibla\await;
 
 /**
  * Instance-based Asynchronous PDO API for independent database connections.
@@ -83,7 +88,7 @@ final class AsyncPDOConnection
             throw new \RuntimeException('onCommit() can only be called within a transaction.');
         }
 
-        if ($this->transactionCallbacks === null || !isset($this->transactionCallbacks[$pdo])) {
+        if ($this->transactionCallbacks === null || ! isset($this->transactionCallbacks[$pdo])) {
             throw new \RuntimeException('Transaction state not found.');
         }
 
@@ -114,7 +119,7 @@ final class AsyncPDOConnection
             throw new \RuntimeException('onRollback() can only be called within a transaction.');
         }
 
-        if ($this->transactionCallbacks === null || !isset($this->transactionCallbacks[$pdo])) {
+        if ($this->transactionCallbacks === null || ! isset($this->transactionCallbacks[$pdo])) {
             throw new \RuntimeException('Transaction state not found.');
         }
 
@@ -147,6 +152,7 @@ final class AsyncPDOConnection
 
             try {
                 $pdo = await($this->getPool()->get());
+
                 return $callback($pdo);
             } finally {
                 if ($pdo !== null) {
@@ -381,7 +387,7 @@ final class AsyncPDOConnection
      */
     private function executeCallbacks(PDO $pdo, string $type): void
     {
-        if ($this->transactionCallbacks === null || !isset($this->transactionCallbacks[$pdo])) {
+        if ($this->transactionCallbacks === null || ! isset($this->transactionCallbacks[$pdo])) {
             return;
         }
 
@@ -434,7 +440,7 @@ final class AsyncPDOConnection
      */
     private function getPool(): PoolManager
     {
-        if (!$this->isInitialized || $this->pool === null) {
+        if (! $this->isInitialized || $this->pool === null) {
             throw new \RuntimeException(
                 'AsyncPDOConnection instance has not been initialized.'
             );

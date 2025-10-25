@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Hibla\AsyncPDO;
 
 use Hibla\AsyncPDO\Exception\AsyncPDONotInitializedException;
@@ -197,7 +199,7 @@ final class AsyncPDO
      */
     private static function getInstance(): AsyncPDOConnection
     {
-        if (!self::$isInitialized || self::$instance === null) {
+        if (! self::$isInitialized || self::$instance === null) {
             throw new AsyncPDONotInitializedException();
         }
 

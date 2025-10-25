@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Hibla\AsyncPDO\Utilities\DatabaseConfigFactory;
 
 test('mysql creates correct configuration with defaults', function () {
