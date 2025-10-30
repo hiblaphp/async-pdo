@@ -11,6 +11,7 @@ use Tests\Helpers\StressTestHelper;
 
 describe('AsyncPDO Stress Test - SQLite', function () {
     beforeEach(function () {
+        AsyncPDO::reset();
         $config = [
             'driver' => 'sqlite',
             'database' => 'file::memory:?cache=shared',

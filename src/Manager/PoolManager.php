@@ -320,7 +320,7 @@ class PoolManager
 
             return $pdo;
         } catch (PDOException $e) {
-            throw new PoolException('PDO Connection failed: '.$e->getMessage(), (int) $e->getCode(), $e);
+            throw new PoolException('PDO Connection failed: ' . $e->getMessage(), (int) $e->getCode(), $e);
         }
     }
 

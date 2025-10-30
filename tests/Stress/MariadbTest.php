@@ -11,17 +11,18 @@ use Tests\Helpers\StressTestHelper;
 
 describe('AsyncPDO Stress Test - MariaDB', function () {
     beforeEach(function () {
-        if (empty($_ENV['MARIADB_HOST'])) {
+        AsyncPDO::reset();
+        if (empty(getenv('MARIADB_HOST'))) {
             test()->markTestSkipped('MariaDB not configured');
         }
 
         $config = [
             'driver' => 'mysql',
-            'host' => $_ENV['MARIADB_HOST'] ?? 'localhost',
-            'port' => (int) ($_ENV['MARIADB_PORT'] ?? 3306),
-            'database' => $_ENV['MARIADB_DATABASE'] ?? 'test',
-            'username' => $_ENV['MARIADB_USERNAME'] ?? 'root',
-            'password' => $_ENV['MARIADB_PASSWORD'] ?? '',
+            'host' => getenv('MARIADB_HOST') ?: 'localhost',
+            'port' => (int) (getenv('MARIADB_PORT') ?: 3306),
+            'database' => getenv('MARIADB_DATABASE') ?: 'test',
+            'username' => getenv('MARIADB_USERNAME') ?: 'root',
+            'password' => getenv('MARIADB_PASSWORD') ?: '',
             'charset' => 'utf8mb4',
         ];
 

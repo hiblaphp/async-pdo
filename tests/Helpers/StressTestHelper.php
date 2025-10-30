@@ -34,7 +34,7 @@ class StressTestHelper
         return [
             'first_name' => self::$firstNames[array_rand(self::$firstNames)],
             'last_name' => self::$lastNames[array_rand(self::$lastNames)],
-            'email' => uniqid('user_').'@example.com',
+            'email' => uniqid('user_') . '@example.com',
             'city' => self::$cities[array_rand(self::$cities)],
             'created_at' => date('Y-m-d H:i:s'),
         ];
@@ -225,7 +225,7 @@ class StressTestHelper
 
             $stmt = $pdo->prepare(
                 'INSERT INTO users (first_name, last_name, email, city, created_at) 
-                 VALUES (?, ?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?, ?)'
             );
             $stmt->execute([
                 $userData['first_name'],
@@ -235,7 +235,7 @@ class StressTestHelper
                 $userData['created_at'],
             ]);
 
-            return $pdo->lastInsertId();
+            return (int) $pdo->lastInsertId();
         });
     }
 
@@ -252,7 +252,7 @@ class StressTestHelper
 
             $stmt = $pdo->prepare(
                 'INSERT INTO orders (user_id, total, status, created_at) 
-                 VALUES (?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?)'
             );
             $stmt->execute([
                 $orderData['user_id'],
@@ -261,12 +261,12 @@ class StressTestHelper
                 $orderData['created_at'],
             ]);
 
-            $orderId = $pdo->lastInsertId();
+            $orderId = (int) $pdo->lastInsertId();
 
             foreach ($orderData['items'] as $item) {
                 $stmt = $pdo->prepare(
                     'INSERT INTO order_items (order_id, product_name, quantity, price, subtotal) 
-                     VALUES (?, ?, ?, ?, ?)'
+                 VALUES (?, ?, ?, ?, ?)'
                 );
                 $stmt->execute([
                     $orderId,
@@ -357,7 +357,7 @@ class StressTestHelper
                 return 0;
             }
 
-            $placeholders = str_repeat('?,', count($ids) - 1).'?';
+            $placeholders = str_repeat('?,', count($ids) - 1) . '?';
             $stmt = $pdo->prepare("
             UPDATE orders 
             SET status = ? 

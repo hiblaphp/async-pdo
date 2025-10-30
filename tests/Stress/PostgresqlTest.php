@@ -11,17 +11,18 @@ use Tests\Helpers\StressTestHelper;
 
 describe('AsyncPDO Stress Test - PostgreSQL', function () {
     beforeEach(function () {
-        if (empty($_ENV['PGSQL_HOST'])) {
+        AsyncPDO::reset();
+        if (empty(getenv('PGSQL_HOST'))) {
             test()->markTestSkipped('PostgreSQL not configured');
         }
 
         $config = [
             'driver' => 'pgsql',
-            'host' => $_ENV['PGSQL_HOST'] ?? 'localhost',
-            'port' => (int) ($_ENV['PGSQL_PORT'] ?? 5432),
-            'database' => $_ENV['PGSQL_DATABASE'] ?? 'test',
-            'username' => $_ENV['PGSQL_USERNAME'] ?? 'postgres',
-            'password' => $_ENV['PGSQL_PASSWORD'] ?? '',
+            'host' => getenv('PGSQL_HOST') ?: 'localhost',
+            'port' => (int) (getenv('PGSQL_PORT') ?: 5432),
+            'database' => getenv('PGSQL_DATABASE') ?: 'test',
+            'username' => getenv('PGSQL_USERNAME') ?: 'postgres',
+            'password' => getenv('PGSQL_PASSWORD') ?: '',
         ];
 
         AsyncPDO::init($config, 50);
