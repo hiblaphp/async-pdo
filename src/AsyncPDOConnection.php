@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Hibla\AsyncPDO;
 
+use Hibla\AsyncPDO\Exceptions\NotInTransactionException;
+use Hibla\AsyncPDO\Exceptions\NotInitializedException;
+use Hibla\AsyncPDO\Exceptions\QueryException;
+use Hibla\AsyncPDO\Exceptions\TransactionException;
+use Hibla\AsyncPDO\Exceptions\TransactionFailedException;
 use Hibla\AsyncPDO\Manager\PoolManager;
+use Hibla\AsyncPDO\Manager\TransactionManager;
+use Hibla\AsyncPDO\Utilities\QueryExecutor;
 use Hibla\Promise\Interfaces\PromiseInterface;
 use PDO;
-use Throwable;
-use WeakMap;
 
 use function Hibla\async;
 use function Hibla\await;
@@ -28,8 +33,11 @@ final class AsyncPDOConnection
     /** @var bool Tracks initialization state of this instance */
     private bool $isInitialized = false;
 
-    /** @var WeakMap<PDO, array{commit: list<callable(): void>, rollback: list<callable(): void>, fiber: \Fiber<mixed, mixed, mixed, mixed>|null}>|null Transaction callbacks using WeakMap */
-    private ?WeakMap $transactionCallbacks = null;
+    /** @var QueryExecutor|null Handles query execution and result processing */
+    private ?QueryExecutor $queryExecutor = null;
+
+    /** @var TransactionManager|null Manages transactions and callbacks */
+    private ?TransactionManager $transactionManager = null;
 
     /**
      * Creates a new independent AsyncPDOConnection instance.
@@ -52,7 +60,8 @@ final class AsyncPDOConnection
     public function __construct(array $dbConfig, int $poolSize = 10)
     {
         $this->pool = new PoolManager($dbConfig, $poolSize);
-        $this->transactionCallbacks = new WeakMap();
+        $this->queryExecutor = new QueryExecutor();
+        $this->transactionManager = new TransactionManager();
         $this->isInitialized = true;
     }
 
@@ -69,84 +78,63 @@ final class AsyncPDOConnection
         }
         $this->pool = null;
         $this->isInitialized = false;
-        $this->transactionCallbacks = null;
+        $this->queryExecutor = null;
+        $this->transactionManager = null;
     }
 
     /**
      * Registers a callback to execute when the current transaction commits.
      *
+     * This method can only be called from within an active transaction.
+     * The callback will be executed after the transaction successfully commits
+     * but before the transaction() method returns.
+     *
      * @param  callable(): void  $callback  Callback to execute on commit
      * @return void
      *
-     * @throws \RuntimeException If not currently in a transaction
+     * @throws NotInTransactionException If not currently in a transaction
+     * @throws TransactionException If transaction state is corrupted
      */
     public function onCommit(callable $callback): void
     {
-        $pdo = $this->getCurrentTransactionPDO();
-
-        if ($pdo === null) {
-            throw new \RuntimeException('onCommit() can only be called within a transaction.');
-        }
-
-        if ($this->transactionCallbacks === null || ! isset($this->transactionCallbacks[$pdo])) {
-            throw new \RuntimeException('Transaction state not found.');
-        }
-
-        $transactionData = $this->transactionCallbacks[$pdo];
-        $commitCallbacks = $transactionData['commit'];
-        $commitCallbacks[] = $callback;
-
-        $this->transactionCallbacks[$pdo] = [
-            'commit' => $commitCallbacks,
-            'rollback' => $transactionData['rollback'],
-            'fiber' => $transactionData['fiber'],
-        ];
+        $this->getTransactionManager()->onCommit($callback);
     }
 
     /**
      * Registers a callback to execute when the current transaction rolls back.
      *
+     * This method can only be called from within an active transaction.
+     * The callback will be executed after the transaction is rolled back
+     * but before the exception is re-thrown.
+     *
      * @param  callable(): void  $callback  Callback to execute on rollback
      * @return void
      *
-     * @throws \RuntimeException If not currently in a transaction
+     * @throws NotInTransactionException If not currently in a transaction
+     * @throws TransactionException If transaction state is corrupted
      */
     public function onRollback(callable $callback): void
     {
-        $pdo = $this->getCurrentTransactionPDO();
-
-        if ($pdo === null) {
-            throw new \RuntimeException('onRollback() can only be called within a transaction.');
-        }
-
-        if ($this->transactionCallbacks === null || ! isset($this->transactionCallbacks[$pdo])) {
-            throw new \RuntimeException('Transaction state not found.');
-        }
-
-        $transactionData = $this->transactionCallbacks[$pdo];
-        $rollbackCallbacks = $transactionData['rollback'];
-        $rollbackCallbacks[] = $callback;
-
-        $this->transactionCallbacks[$pdo] = [
-            'commit' => $transactionData['commit'],
-            'rollback' => $rollbackCallbacks,
-            'fiber' => $transactionData['fiber'],
-        ];
+        $this->getTransactionManager()->onRollback($callback);
     }
 
     /**
      * Executes a callback with a connection from this instance's pool.
+     *
+     * Automatically handles connection acquisition and release. The callback
+     * receives a PDO instance and can perform any database operations.
+     * The connection is guaranteed to be released back to the pool even if
+     * the callback throws an exception.
      *
      * @template TResult
      *
      * @param  callable(PDO): TResult  $callback  Function that receives PDO instance
      * @return PromiseInterface<TResult> Promise resolving to callback's return value
      *
-     * @throws \RuntimeException If this instance is not initialized
+     * @throws NotInitializedException If this instance is not initialized
      */
     public function run(callable $callback): PromiseInterface
     {
-        // @phpstan-ignore-next-line
         return async(function () use ($callback): mixed {
             $pdo = null;
 
@@ -165,86 +153,76 @@ final class AsyncPDOConnection
     /**
      * Executes a SELECT query and returns all matching rows.
      *
+     * The query is executed using PDO's prepared statement API.
+     * Parameters are safely bound using prepared statements to prevent SQL injection.
+     *
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
-     * @return PromiseInterface<array<int, array<string, mixed>>>
+     * @return PromiseInterface<array<int, array<string, mixed>>> Promise resolving to array of associative arrays
      *
-     * @throws \PDOException If query execution fails
+     * @throws NotInitializedException If this instance is not initialized
+     * @throws QueryException If query execution fails
      */
     public function query(string $sql, array $params = []): PromiseInterface
     {
-        return $this->run(function (PDO $pdo) use ($sql, $params): array {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-
-            /** @var array<int, array<string, mixed>> */
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            return $result;
-        });
+        /** @var PromiseInterface<array<int, array<string, mixed>>> */
+        return $this->executeQuery($sql, $params, 'fetchAll');
     }
 
     /**
      * Executes a SELECT query and returns the first matching row.
      *
+     * The query is executed using PDO's prepared statement API.
+     * Returns false if no rows match the query.
+     *
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
-     * @return PromiseInterface<array<string, mixed>|false>
+     * @return PromiseInterface<array<string, mixed>|false> Promise resolving to associative array or false if no rows
      *
-     * @throws \PDOException If query execution fails
+     * @throws NotInitializedException If this instance is not initialized
+     * @throws QueryException If query execution fails
      */
     public function fetchOne(string $sql, array $params = []): PromiseInterface
     {
-        return $this->run(function (PDO $pdo) use ($sql, $params): array|false {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-
-            /** @var array<string, mixed>|false */
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            return $result;
-        });
+        /** @var PromiseInterface<array<string, mixed>|false> */
+        return $this->executeQuery($sql, $params, 'fetchOne');
     }
 
     /**
      * Executes an INSERT, UPDATE, or DELETE statement and returns affected row count.
      *
+     * The statement is executed using PDO's prepared statement API.
+     * Returns the number of rows affected by the operation.
+     *
      * @param  string  $sql  SQL statement with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<int> Promise resolving to number of affected rows
      *
-     * @throws \PDOException If statement execution fails
+     * @throws NotInitializedException If this instance is not initialized
+     * @throws QueryException If statement execution fails
      */
     public function execute(string $sql, array $params = []): PromiseInterface
     {
-        // @phpstan-ignore-next-line
-        return $this->run(function (PDO $pdo) use ($sql, $params): int {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-
-            return $stmt->rowCount();
-        });
+        /** @var PromiseInterface<int> */
+        return $this->executeQuery($sql, $params, 'execute');
     }
 
     /**
      * Executes a query and returns a single column value from the first row.
      *
      * Useful for queries that return a single scalar value like COUNT, MAX, etc.
+     * Returns false if the query returns no rows.
      *
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<mixed> Promise resolving to scalar value or false if no rows
      *
-     * @throws \PDOException If query execution fails
+     * @throws NotInitializedException If this instance is not initialized
+     * @throws QueryException If query execution fails
      */
     public function fetchValue(string $sql, array $params = []): PromiseInterface
     {
-        return $this->run(function (PDO $pdo) use ($sql, $params): mixed {
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-
-            return $stmt->fetch(PDO::FETCH_COLUMN);
-        });
+        return $this->executeQuery($sql, $params, 'fetchValue');
     }
 
     /**
@@ -252,88 +230,42 @@ final class AsyncPDOConnection
      *
      * Automatically handles transaction begin/commit/rollback. If the callback
      * throws an exception, the transaction is rolled back and retried based on
-     * the specified number of attempts.
+     * the specified number of attempts. All retry attempts are made with exponential
+     * backoff between attempts.
+     *
+     * Registered onCommit() callbacks are executed after successful commit.
+     * Registered onRollback() callbacks are executed after rollback.
      *
      * @param  callable(PDO): mixed  $callback  Transaction callback receiving PDO instance
      * @param  int  $attempts  Number of times to attempt the transaction (default: 1)
      * @return PromiseInterface<mixed> Promise resolving to callback's return value
      *
-     * @throws \PDOException If transaction operations fail after all attempts
-     * @throws Throwable Any exception thrown by the callback after all attempts
+     * @throws NotInitializedException If this instance is not initialized
+     * @throws TransactionFailedException If transaction fails after all attempts
+     * @throws \InvalidArgumentException If attempts is less than 1
      */
     public function transaction(callable $callback, int $attempts = 1): PromiseInterface
     {
-        return async(function () use ($callback, $attempts) {
-            if ($attempts < 1) {
-                throw new \InvalidArgumentException('Transaction attempts must be at least 1.');
-            }
-
-            /** @var Throwable|null $lastException */
-            $lastException = null;
-
-            for ($currentAttempt = 1; $currentAttempt <= $attempts; $currentAttempt++) {
-                try {
-                    return await($this->run(function (PDO $pdo) use ($callback) {
-                        $currentFiber = \Fiber::getCurrent();
-
-                        $this->ensureTransactionCallbacksInitialized();
-
-                        /** @var array{commit: list<callable(): void>, rollback: list<callable(): void>, fiber: \Fiber<mixed, mixed, mixed, mixed>|null} $initialState */
-                        $initialState = [
-                            'commit' => [],
-                            'rollback' => [],
-                            'fiber' => $currentFiber,
-                        ];
-
-                        // @phpstan-ignore-next-line
-                        $this->transactionCallbacks[$pdo] = $initialState;
-
-                        $pdo->beginTransaction();
-
-                        try {
-                            $result = $callback($pdo);
-                            $pdo->commit();
-
-                            $this->executeCallbacks($pdo, 'commit');
-
-                            return $result;
-                        } catch (Throwable $e) {
-                            if ($pdo->inTransaction()) {
-                                $pdo->rollBack();
-                            }
-
-                            $this->executeCallbacks($pdo, 'rollback');
-
-                            throw $e;
-                        } finally {
-                            if (isset($this->transactionCallbacks[$pdo])) {
-                                unset($this->transactionCallbacks[$pdo]);
-                            }
-                        }
-                    }));
-                } catch (Throwable $e) {
-                    $lastException = $e;
-
-                    if ($currentAttempt < $attempts) {
-                        continue;
-                    }
-
-                    throw $e;
-                }
-            }
-
-            if ($lastException !== null) {
-                throw $lastException;
-            }
-
-            throw new \RuntimeException('Transaction failed without exception.');
-        });
+        return $this->getTransactionManager()->executeTransaction(
+            fn() => $this->getPool()->get(),
+            fn($connection) => $this->getPool()->release($connection),
+            $callback,
+            $attempts
+        );
     }
 
     /**
      * Gets statistics about this instance's connection pool.
      *
-     * @return array<string, int|bool> Pool statistics
+     * Returns information about the current state of the connection pool,
+     * including total connections, available connections, and connections in use.
+     *
+     * @return array<string, int|bool> Pool statistics including:
+     *                                  - total: Total number of connections in pool
+     *                                  - available: Number of available connections
+     *                                  - inUse: Number of connections currently in use
+     *
+     * @throws NotInitializedException If this instance is not initialized
      */
     public function getStats(): array
     {
@@ -343,7 +275,12 @@ final class AsyncPDOConnection
     /**
      * Gets the most recently used connection from this pool.
      *
+     * This is primarily useful for debugging and testing purposes.
+     * Returns null if no connection has been used yet.
+     *
      * @return PDO|null The last connection or null if none used yet
+     *
+     * @throws NotInitializedException If this instance is not initialized
      */
     public function getLastConnection(): ?PDO
     {
@@ -351,82 +288,35 @@ final class AsyncPDOConnection
     }
 
     /**
-     * Gets the current transaction's PDO instance if in a transaction within the current fiber.
+     * Executes a query with the specified result processing type.
      *
-     * @return PDO|null PDO instance or null if not in transaction
+     * This method handles the complete lifecycle of query execution including
+     * connection acquisition, query execution, and connection release.
      *
-     * @internal This method is for internal use only
+     * @param  string  $sql  SQL query/statement
+     * @param  array<string|int, mixed>  $params  Query parameters
+     * @param  string  $resultType  Type of result processing ('fetchAll', 'fetchOne', 'execute', 'fetchValue')
+     * @return PromiseInterface<mixed> Promise resolving to processed result
+     *
+     * @throws NotInitializedException If this instance is not initialized
+     * @throws QueryException If query execution fails
      */
-    private function getCurrentTransactionPDO(): ?PDO
+    private function executeQuery(string $sql, array $params, string $resultType): PromiseInterface
     {
-        if ($this->transactionCallbacks === null) {
-            return null;
-        }
+        return async(function () use ($sql, $params, $resultType) {
+            $pdo = await($this->getPool()->get());
 
-        $currentFiber = \Fiber::getCurrent();
-
-        foreach ($this->transactionCallbacks as $pdo => $data) {
-            if ($data['fiber'] === $currentFiber) {
-                return $pdo;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Executes registered callbacks for commit or rollback.
-     *
-     * @param  PDO  $pdo  PDO instance
-     * @param  string  $type  'commit' or 'rollback'
-     * @return void
-     *
-     * @throws Throwable If any callback throws an exception
-     *
-     * @internal This method is for internal use only
-     */
-    private function executeCallbacks(PDO $pdo, string $type): void
-    {
-        if ($this->transactionCallbacks === null || ! isset($this->transactionCallbacks[$pdo])) {
-            return;
-        }
-
-        $transactionData = $this->transactionCallbacks[$pdo];
-
-        if ($type !== 'commit' && $type !== 'rollback') {
-            return;
-        }
-
-        $callbacks = $transactionData[$type];
-
-        /** @var list<Throwable> $exceptions */
-        $exceptions = [];
-
-        foreach ($callbacks as $callback) {
             try {
-                $callback();
-            } catch (Throwable $e) {
-                $exceptions[] = $e;
+                return $this->getQueryExecutor()->executeQuery(
+                    $pdo,
+                    $sql,
+                    $params,
+                    $resultType
+                );
+            } finally {
+                $this->getPool()->release($pdo);
             }
-        }
-
-        if (count($exceptions) > 0) {
-            throw $exceptions[0];
-        }
-    }
-
-    /**
-     * Ensures the transaction callbacks WeakMap is initialized.
-     *
-     * @return void
-     *
-     * @internal This method is for internal use only
-     */
-    private function ensureTransactionCallbacksInitialized(): void
-    {
-        if ($this->transactionCallbacks === null) {
-            $this->transactionCallbacks = new WeakMap();
-        }
+        });
     }
 
     /**
@@ -434,18 +324,52 @@ final class AsyncPDOConnection
      *
      * @return PoolManager The initialized connection pool
      *
-     * @throws \RuntimeException If this instance is not initialized
-     *
-     * @internal This method is for internal use only
+     * @throws NotInitializedException If this instance is not initialized
      */
     private function getPool(): PoolManager
     {
-        if (! $this->isInitialized || $this->pool === null) {
-            throw new \RuntimeException(
-                'AsyncPDOConnection instance has not been initialized.'
+        if (!$this->isInitialized || $this->pool === null) {
+            throw new NotInitializedException(
+                'AsyncPDOConnection instance has not been initialized or has been reset.'
             );
         }
 
         return $this->pool;
+    }
+
+    /**
+     * Gets the query executor instance.
+     *
+     * @return QueryExecutor The initialized query executor
+     *
+     * @throws NotInitializedException If this instance is not initialized
+     */
+    private function getQueryExecutor(): QueryExecutor
+    {
+        if ($this->queryExecutor === null) {
+            throw new NotInitializedException(
+                'AsyncPDOConnection instance has not been initialized or has been reset.'
+            );
+        }
+
+        return $this->queryExecutor;
+    }
+
+    /**
+     * Gets the transaction manager instance.
+     *
+     * @return TransactionManager The initialized transaction manager
+     *
+     * @throws NotInitializedException If this instance is not initialized
+     */
+    private function getTransactionManager(): TransactionManager
+    {
+        if ($this->transactionManager === null) {
+            throw new NotInitializedException(
+                'AsyncPDOConnection instance has not been initialized or has been reset.'
+            );
+        }
+
+        return $this->transactionManager;
     }
 }

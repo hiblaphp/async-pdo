@@ -112,9 +112,6 @@ final class AsyncPDO
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<array<int, array<string, mixed>>> Promise resolving to array of associative arrays
-     *
-     * @throws AsyncPDONotInitializedException If AsyncPDO is not initialized
-     * @throws \PDOException If query execution fails
      */
     public static function query(string $sql, array $params = []): PromiseInterface
     {
@@ -127,9 +124,6 @@ final class AsyncPDO
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<array<string, mixed>|false> Promise resolving to associative array or false if no rows
-     *
-     * @throws AsyncPDONotInitializedException If AsyncPDO is not initialized
-     * @throws \PDOException If query execution fails
      */
     public static function fetchOne(string $sql, array $params = []): PromiseInterface
     {
@@ -142,9 +136,6 @@ final class AsyncPDO
      * @param  string  $sql  SQL statement with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<int> Promise resolving to number of affected rows
-     *
-     * @throws AsyncPDONotInitializedException If AsyncPDO is not initialized
-     * @throws \PDOException If statement execution fails
      */
     public static function execute(string $sql, array $params = []): PromiseInterface
     {
@@ -159,9 +150,6 @@ final class AsyncPDO
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<mixed> Promise resolving to scalar value or false if no rows
-     *
-     * @throws AsyncPDONotInitializedException If AsyncPDO is not initialized
-     * @throws \PDOException If query execution fails
      */
     public static function fetchValue(string $sql, array $params = []): PromiseInterface
     {
@@ -178,10 +166,6 @@ final class AsyncPDO
      * @param  callable(PDO): mixed  $callback  Transaction callback receiving PDO instance
      * @param  int  $attempts  Number of times to attempt the transaction (default: 1)
      * @return PromiseInterface<mixed> Promise resolving to callback's return value
-     *
-     * @throws AsyncPDONotInitializedException If AsyncPDO is not initialized
-     * @throws \PDOException If transaction operations fail after all attempts
-     * @throws \Throwable Any exception thrown by the callback after all attempts (after rollback)
      */
     public static function transaction(callable $callback, int $attempts = 1): PromiseInterface
     {
