@@ -16,9 +16,17 @@ describe('AsyncPDO Stress Test - MySQL', function () {
             test()->markTestSkipped('MySQL not configured');
         }
 
+        $isCI = (bool) getenv('CI');
+
+        if ($isCI) {
+            $defaultHost = '127.0.0.1';
+        } else {
+            $defaultHost = 'localhost';
+        }
+
         $config = [
             'driver' => 'mysql',
-            'host' => getenv('MYSQL_HOST') ?: 'localhost',
+            'host' =>  $defaultHost,
             'port' => (int) (getenv('MYSQL_PORT') ?: 3306),
             'database' => getenv('MYSQL_DATABASE') ?: 'test',
             'username' => getenv('MYSQL_USERNAME') ?: 'root',
