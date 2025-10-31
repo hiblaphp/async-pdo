@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hibla\AsyncPDO;
 
+use Hibla\AsyncPDO\Enums\IsolationLevel;
 use Hibla\AsyncPDO\Exception\AsyncPDONotInitializedException;
 use Hibla\Promise\Interfaces\PromiseInterface;
 use PDO;
@@ -160,16 +161,28 @@ final class AsyncPDO
      * Executes multiple operations within a database transaction.
      *
      * Automatically handles transaction begin/commit/rollback. If the callback
-     * throws an exception, the transaction is rolled back automatically and
-     * retried up to the specified number of attempts.
+     * throws an exception, the transaction is rolled back and retried based on
+     * the specified number of attempts. All retry attempts are made with exponential
+     * backoff between attempts.
      *
-     * @param  callable(PDO): mixed  $callback  Transaction callback receiving PDO instance
+     * Registered onCommit() callbacks are executed after successful commit.
+     * Registered onRollback() callbacks are executed after rollback.
+     *
+     * @param  callable(PDO): mixed|PromiseInterface<mixed>  $callbackOrPromise  Transaction callback or Promise
      * @param  int  $attempts  Number of times to attempt the transaction (default: 1)
+     * @param  IsolationLevel|null  $isolationLevel  Transaction isolation level (optional)
      * @return PromiseInterface<mixed> Promise resolving to callback's return value
+     *
+     * @throws NotInitializedException If this instance is not initialized
+     * @throws TransactionFailedException If transaction fails after all attempts
+     * @throws \InvalidArgumentException If attempts is less than 1
      */
-    public static function transaction(callable $callback, int $attempts = 1): PromiseInterface
-    {
-        return self::getInstance()->transaction($callback, $attempts);
+    public static function transaction(
+        callable|PromiseInterface $callbackOrPromise,
+        int $attempts = 1,
+        ?IsolationLevel $isolationLevel = null
+    ): PromiseInterface {
+        return self::getInstance()->transaction($callbackOrPromise, $attempts, $isolationLevel);
     }
 
     /**

@@ -3,32 +3,32 @@
 declare(strict_types=1);
 
 use function Hibla\async;
-
-use Hibla\AsyncPDO\AsyncPDO;
-
+use Hibla\AsyncPDO\AsyncPDOConnection;
 use function Hibla\await;
 use function Hibla\delay;
-
 use Hibla\Task\Task;
 
 describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
-    beforeEach(function () {
+    /** @var AsyncPDOConnection */
+    $db = null;
+
+    beforeEach(function () use (&$db) {
         $config = [
             'driver' => 'sqlite',
             'database' => 'file::memory:?cache=shared',
         ];
 
-        AsyncPDO::init($config, 20);
+        $db = new AsyncPDOConnection($config, 20);
 
-        Task::run(function () {
-            await(AsyncPDO::execute('CREATE TABLE IF NOT EXISTS pool_test (
+        Task::run(function () use ($db) {
+            await($db->execute('CREATE TABLE IF NOT EXISTS pool_test (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 data TEXT
             )'));
-            await(AsyncPDO::execute('DELETE FROM pool_test'));
+            await($db->execute('DELETE FROM pool_test'));
 
             for ($i = 1; $i <= 1000; $i++) {
-                await(AsyncPDO::execute(
+                await($db->execute(
                     'INSERT INTO pool_test (data) VALUES (?)',
                     ["Row {$i}"]
                 ));
@@ -36,22 +36,23 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
         });
     });
 
-    afterEach(function () {
-        await(AsyncPDO::execute('DROP TABLE IF EXISTS pool_test'));
-        AsyncPDO::reset();
+    afterEach(function () use (&$db) {
+        await($db->execute('DROP TABLE IF EXISTS pool_test'));
+        $db->reset();
+        $db = null;
     });
 
-    it('executes queries cooperatively with interleaving starts', function () {
+    it('executes queries cooperatively with interleaving starts', function () use (&$db) {
         $start = microtime(true);
         $startTimes = [];
         $promises = [];
 
         for ($i = 1; $i <= 5; $i++) {
-            $promises[] = async(function () use ($i, $start, &$startTimes) {
+            $promises[] = async(function () use ($db, $i, $start, &$startTimes) {
                 $startTime = microtime(true);
                 $startTimes[$i] = ($startTime - $start) * 1000;
 
-                $result = await(AsyncPDO::query('
+                $result = await($db->query('
                     SELECT 
                         t1.id,
                         t1.data,
@@ -78,17 +79,17 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
         expect($totalTime)->toBeLessThan(200);
     });
 
-    it('interleaves DB queries with async delays', function () {
+    it('interleaves DB queries with async delays', function () use (&$db) {
         $start = microtime(true);
         $timeline = [];
         $promises = [];
 
         for ($i = 1; $i <= 3; $i++) {
-            $promises[] = async(function () use ($i, $start, &$timeline) {
+            $promises[] = async(function () use ($db, $i, $start, &$timeline) {
                 $startTime = microtime(true);
                 $timeline["DB-{$i}-start"] = ($startTime - $start) * 1000;
 
-                $result = await(AsyncPDO::query('
+                $result = await($db->query('
                     SELECT * FROM pool_test 
                     WHERE id BETWEEN '.($i * 100).' AND '.(($i * 100) + 50).'
                 '));
@@ -123,19 +124,19 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
         expect($totalTime)->toBeLessThan(100);
     });
 
-    it('shows query execution overlap in timestamps', function () {
+    it('shows query execution overlap in timestamps', function () use (&$db) {
         $start = microtime(true);
         $timeline = [];
         $promises = [];
 
         for ($i = 1; $i <= 3; $i++) {
-            $promises[] = async(function () use ($i, $start, &$timeline) {
+            $promises[] = async(function () use ($db, $i, $start, &$timeline) {
                 $events = [];
 
                 $events['fiber_start'] = microtime(true) - $start;
                 $events['query_start'] = microtime(true) - $start;
 
-                $result = await(AsyncPDO::fetchOne('
+                $result = await($db->fetchOne('
                 SELECT COUNT(*) as total
                 FROM pool_test t1, pool_test t2
                 WHERE t1.id < '.(100 + ($i * 50)).'

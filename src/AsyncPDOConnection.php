@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hibla\AsyncPDO;
 
+use Hibla\AsyncPDO\Enums\IsolationLevel;
 use Hibla\AsyncPDO\Exceptions\NotInTransactionException;
 use Hibla\AsyncPDO\Exceptions\NotInitializedException;
 use Hibla\AsyncPDO\Exceptions\QueryException;
@@ -236,21 +237,26 @@ final class AsyncPDOConnection
      * Registered onCommit() callbacks are executed after successful commit.
      * Registered onRollback() callbacks are executed after rollback.
      *
-     * @param  callable(PDO): mixed  $callback  Transaction callback receiving PDO instance
+     * @param  callable(PDO): mixed|PromiseInterface<mixed>  $callbackOrPromise  Transaction callback or Promise
      * @param  int  $attempts  Number of times to attempt the transaction (default: 1)
+     * @param  IsolationLevel|null  $isolationLevel  Transaction isolation level (optional)
      * @return PromiseInterface<mixed> Promise resolving to callback's return value
      *
      * @throws NotInitializedException If this instance is not initialized
      * @throws TransactionFailedException If transaction fails after all attempts
      * @throws \InvalidArgumentException If attempts is less than 1
      */
-    public function transaction(callable $callback, int $attempts = 1): PromiseInterface
-    {
+    public function transaction(
+        callable|PromiseInterface $callbackOrPromise,
+        int $attempts = 1,
+        ?IsolationLevel $isolationLevel = null
+    ): PromiseInterface {
         return $this->getTransactionManager()->executeTransaction(
             fn() => $this->getPool()->get(),
             fn($connection) => $this->getPool()->release($connection),
-            $callback,
-            $attempts
+            $callbackOrPromise,
+            $attempts,
+            $isolationLevel
         );
     }
 
@@ -292,6 +298,8 @@ final class AsyncPDOConnection
      *
      * This method handles the complete lifecycle of query execution including
      * connection acquisition, query execution, and connection release.
+     * 
+     * If called from within a transaction, it reuses the transaction's connection.
      *
      * @param  string  $sql  SQL query/statement
      * @param  array<string|int, mixed>  $params  Query parameters
@@ -304,6 +312,17 @@ final class AsyncPDOConnection
     private function executeQuery(string $sql, array $params, string $resultType): PromiseInterface
     {
         return async(function () use ($sql, $params, $resultType) {
+            $transactionPdo = $this->getTransactionManager()->getCurrentTransactionPDO();
+
+            if ($transactionPdo !== null) {
+                return $this->getQueryExecutor()->executeQuery(
+                    $transactionPdo,
+                    $sql,
+                    $params,
+                    $resultType
+                );
+            }
+
             $pdo = await($this->getPool()->get());
 
             try {

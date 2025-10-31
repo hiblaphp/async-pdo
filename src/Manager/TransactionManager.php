@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hibla\AsyncPDO\Manager;
 
+use Hibla\AsyncPDO\Enums\IsolationLevel;
 use Hibla\AsyncPDO\Exceptions\NotInTransactionException;
 use Hibla\AsyncPDO\Exceptions\TransactionException;
 use Hibla\AsyncPDO\Exceptions\TransactionFailedException;
@@ -19,12 +20,15 @@ use function Hibla\await;
  * Manages database transactions and their callbacks.
  * 
  * This class handles transaction lifecycle including begin/commit/rollback operations,
- * retry logic, and execution of registered callbacks.
+ * retry logic, isolation level management, and execution of registered callbacks.
  */
 final class TransactionManager
 {
     /** @var WeakMap<PDO, array{commit: list<callable(): void>, rollback: list<callable(): void>, fiber: \Fiber<mixed, mixed, mixed, mixed>|null}> Transaction callbacks using WeakMap */
     private WeakMap $transactionCallbacks;
+
+    /** @var PDO|null Current transaction PDO connection for the active fiber tree */
+    private ?PDO $currentTransactionPDO = null;
 
     /**
      * Creates a new TransactionManager instance.
@@ -111,7 +115,7 @@ final class TransactionManager
     }
 
     /**
-     * Executes a transaction with retry logic.
+     * Executes a transaction with retry logic and optional isolation level.
      *
      * Automatically handles transaction begin/commit/rollback. If the callback
      * throws an exception, the transaction is rolled back and retried based on
@@ -122,8 +126,9 @@ final class TransactionManager
      *
      * @param  callable(): PromiseInterface<PDO>  $getConnection  Callback to acquire connection
      * @param  callable(PDO): void  $releaseConnection  Callback to release connection
-     * @param  callable(PDO): mixed  $callback  Transaction callback receiving PDO instance
+     * @param  callable(PDO): mixed|PromiseInterface<mixed>  $callbackOrPromise  Transaction callback or Promise
      * @param  int  $attempts  Number of times to attempt the transaction
+     * @param  IsolationLevel|null  $isolationLevel  Transaction isolation level (optional)
      * @return PromiseInterface<mixed> Promise resolving to callback's return value
      *
      * @throws TransactionFailedException If transaction fails after all attempts
@@ -132,10 +137,11 @@ final class TransactionManager
     public function executeTransaction(
         callable $getConnection,
         callable $releaseConnection,
-        callable $callback,
-        int $attempts
+        callable|PromiseInterface $callbackOrPromise,
+        int $attempts,
+        ?IsolationLevel $isolationLevel = null
     ): PromiseInterface {
-        return async(function () use ($getConnection, $releaseConnection, $callback, $attempts) {
+        return async(function () use ($getConnection, $releaseConnection, $callbackOrPromise, $attempts, $isolationLevel) {
             if ($attempts < 1) {
                 throw new \InvalidArgumentException('Transaction attempts must be at least 1.');
             }
@@ -148,7 +154,7 @@ final class TransactionManager
 
                 try {
                     $connection = await($getConnection());
-                    $result = await($this->runTransaction($connection, $callback));
+                    $result = await($this->runTransaction($connection, $callbackOrPromise, $isolationLevel));
                     return $result;
                 } catch (Throwable $e) {
                     $lastException = $e;
@@ -188,19 +194,23 @@ final class TransactionManager
     /**
      * Runs a single transaction attempt.
      *
-     * Executes BEGIN TRANSACTION, runs the callback, and either COMMIT or ROLLBACK based on success.
+     * Executes BEGIN TRANSACTION, runs the callback or awaits the promise, and either COMMIT or ROLLBACK based on success.
      * Manages transaction state and executes appropriate callbacks.
      *
      * @param  PDO  $connection  PDO connection
-     * @param  callable(PDO): mixed  $callback  Transaction callback
+     * @param  callable(PDO): mixed|PromiseInterface<mixed>  $callbackOrPromise  Transaction callback or Promise
+     * @param  IsolationLevel|null  $isolationLevel  Transaction isolation level (optional)
      * @return PromiseInterface<mixed> Promise resolving to callback's return value
      *
-     * @throws TransactionException If BEGIN or COMMIT fails
+     * @throws TransactionException If BEGIN, COMMIT, or isolation level setting fails
      * @throws Throwable If callback throws (after ROLLBACK)
      */
-    private function runTransaction(PDO $connection, callable $callback): PromiseInterface
-    {
-        return async(function () use ($connection, $callback) {
+    private function runTransaction(
+        PDO $connection,
+        callable|PromiseInterface $callbackOrPromise,
+        ?IsolationLevel $isolationLevel = null
+    ): PromiseInterface {
+        return async(function () use ($connection, $callbackOrPromise, $isolationLevel) {
             $currentFiber = \Fiber::getCurrent();
 
             /** @var array{commit: list<callable(): void>, rollback: list<callable(): void>, fiber: \Fiber<mixed, mixed, mixed, mixed>|null} $initialState */
@@ -212,12 +222,26 @@ final class TransactionManager
 
             $this->transactionCallbacks[$connection] = $initialState;
 
-            if (!$connection->beginTransaction()) {
-                throw new TransactionException('Failed to begin transaction');
-            }
+            $previousTransactionPDO = $this->currentTransactionPDO;
+            $this->currentTransactionPDO = $connection;
 
             try {
-                $result = $callback($connection);
+                if ($isolationLevel !== null) {
+                    $this->setIsolationLevel($connection, $isolationLevel);
+                }
+
+                if (!$connection->beginTransaction()) {
+                    throw new TransactionException('Failed to begin transaction');
+                }
+
+                if ($callbackOrPromise instanceof PromiseInterface) {
+                    $result = await($callbackOrPromise);
+                } else {
+                    $result = $callbackOrPromise($connection);
+                    if ($result instanceof PromiseInterface) {
+                        $result = await($result);
+                    }
+                }
 
                 if (!$connection->commit()) {
                     throw new TransactionException('Failed to commit transaction');
@@ -235,6 +259,8 @@ final class TransactionManager
 
                 throw $e;
             } finally {
+                $this->currentTransactionPDO = $previousTransactionPDO;
+
                 if (isset($this->transactionCallbacks[$connection])) {
                     unset($this->transactionCallbacks[$connection]);
                 }
@@ -243,24 +269,15 @@ final class TransactionManager
     }
 
     /**
-     * Gets the current transaction's PDO instance if in a transaction within the current fiber.
+     * Gets the current transaction's PDO instance if in a transaction.
      *
-     * This method checks if the current fiber is executing within a transaction context
-     * and returns the associated connection if found.
+     * This method returns the PDO connection for the active transaction context.
      *
      * @return PDO|null Connection instance or null if not in transaction
      */
-    private function getCurrentTransactionPDO(): ?PDO
+    public function getCurrentTransactionPDO(): ?PDO
     {
-        $currentFiber = \Fiber::getCurrent();
-
-        foreach ($this->transactionCallbacks as $pdo => $data) {
-            if ($data['fiber'] === $currentFiber) {
-                return $pdo;
-            }
-        }
-
-        return null;
+        return $this->currentTransactionPDO;
     }
 
     /**
@@ -310,6 +327,43 @@ final class TransactionManager
                 ),
                 0,
                 $exceptions[0]
+            );
+        }
+    }
+
+    /**
+     * Sets the transaction isolation level for the connection.
+     *
+     * This method sets the isolation level using database-specific syntax.
+     * The isolation level must be set before BEGIN TRANSACTION is called.
+     *
+     * @param  PDO  $connection  PDO connection
+     * @param  IsolationLevel  $isolationLevel  Desired isolation level
+     * @return void
+     *
+     * @throws TransactionException If setting isolation level fails or database doesn't support it
+     */
+    private function setIsolationLevel(PDO $connection, IsolationLevel $isolationLevel): void
+    {
+        $driver = $connection->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        $sql = match ($driver) {
+            'mysql' => "SET SESSION TRANSACTION ISOLATION LEVEL {$isolationLevel->value}",
+            'pgsql' => "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL {$isolationLevel->value}",
+            'sqlite' => throw new TransactionException('SQLite does not support transaction isolation levels'),
+            'sqlsrv' => "SET TRANSACTION ISOLATION LEVEL {$isolationLevel->value}",
+            'oci' => throw new TransactionException('Oracle isolation level setting requires ALTER SESSION syntax'),
+            default => "SET TRANSACTION ISOLATION LEVEL {$isolationLevel->value}",
+        };
+
+        if ($connection->exec($sql) === false) {
+            $errorInfo = $connection->errorInfo();
+            throw new TransactionException(
+                sprintf(
+                    'Failed to set isolation level to %s: %s',
+                    $isolationLevel->value,
+                    $errorInfo[2] ?? 'Unknown error'
+                )
             );
         }
     }
