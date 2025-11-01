@@ -13,6 +13,7 @@ use Hibla\AsyncPDO\Exceptions\TransactionFailedException;
 use Hibla\AsyncPDO\Manager\PoolManager;
 use Hibla\AsyncPDO\Manager\TransactionManager;
 use Hibla\AsyncPDO\Utilities\QueryExecutor;
+use Hibla\AsyncPDO\Utilities\Transaction;
 use Hibla\Promise\Interfaces\PromiseInterface;
 use PDO;
 
@@ -229,15 +230,15 @@ final class AsyncPDOConnection
     /**
      * Executes multiple operations within a database transaction.
      *
-     * Automatically handles transaction begin/commit/rollback. If the callback
-     * throws an exception, the transaction is rolled back and retried based on
-     * the specified number of attempts. All retry attempts are made with exponential
-     * backoff between attempts.
+     * Automatically handles transaction begin/commit/rollback. The callback receives
+     * a Transaction object for executing queries within the transaction context.
+     * If the callback throws an exception, the transaction is rolled back and retried
+     * based on the specified number of attempts.
      *
      * Registered onCommit() callbacks are executed after successful commit.
      * Registered onRollback() callbacks are executed after rollback.
      *
-     * @param  callable(PDO): mixed|PromiseInterface<mixed>  $callbackOrPromise  Transaction callback or Promise
+     * @param  callable(Transaction): mixed  $callback  Transaction callback receiving Transaction object
      * @param  int  $attempts  Number of times to attempt the transaction (default: 1)
      * @param  IsolationLevel|null  $isolationLevel  Transaction isolation level (optional)
      * @return PromiseInterface<mixed> Promise resolving to callback's return value
@@ -247,14 +248,15 @@ final class AsyncPDOConnection
      * @throws \InvalidArgumentException If attempts is less than 1
      */
     public function transaction(
-        callable|PromiseInterface $callbackOrPromise,
+        callable $callback,
         int $attempts = 1,
         ?IsolationLevel $isolationLevel = null
     ): PromiseInterface {
         return $this->getTransactionManager()->executeTransaction(
             fn() => $this->getPool()->get(),
             fn($connection) => $this->getPool()->release($connection),
-            $callbackOrPromise,
+            $callback,
+            $this->getQueryExecutor(),
             $attempts,
             $isolationLevel
         );

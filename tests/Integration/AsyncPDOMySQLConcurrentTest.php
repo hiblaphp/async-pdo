@@ -13,17 +13,22 @@ describe('AsyncPDO Cooperative Query Execution - MySQL', function () {
     $db = null;
 
     beforeEach(function () use (&$db) {
-        if (empty($_ENV['MYSQL_HOST'])) {
+        if (empty(getenv('MYSQL_HOST'))) {
             test()->markTestSkipped('MySQL not configured');
+        }
+
+        $host = getenv('MYSQL_HOST') ?: 'localhost';
+        if ($host === '127.0.0.1' && !getenv('CI')) {
+            $host = 'localhost';
         }
 
         $config = [
             'driver' => 'mysql',
-            'host' => $_ENV['MYSQL_HOST'] ?? 'localhost',
-            'port' => (int) ($_ENV['MYSQL_PORT'] ?? 3306),
-            'database' => $_ENV['MYSQL_DATABASE'] ?? 'test',
-            'username' => $_ENV['MYSQL_USERNAME'] ?? 'root',
-            'password' => $_ENV['MYSQL_PASSWORD'] ?? '',
+            'host' => $host,
+            'port' => (int) (getenv('MYSQL_PORT') ?: 3306),
+            'database' => getenv('MYSQL_DATABASE') ?: 'test',
+            'username' => getenv('MYSQL_USERNAME') ?: 'root',
+            'password' => getenv('MYSQL_PASSWORD') ?: '',
             'charset' => 'utf8mb4',
         ];
 

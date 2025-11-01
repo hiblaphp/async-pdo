@@ -5,28 +5,35 @@ declare(strict_types=1);
 use Hibla\AsyncPDO\AsyncPDOConnection;
 use Tests\Helpers\StressTestHelper;
 
-describe('AsyncPDO Stress Test - MariaDB', function () {
+describe('AsyncPDO Stress Test - SQL Server', function () {
     /** @var AsyncPDOConnection */
     $db = null;
 
     beforeEach(function () use (&$db) {
-        if (empty(getenv('MARIADB_HOST'))) {
-            test()->markTestSkipped('MariaDB not configured');
+        skipIfPhp84OrHigher();
+
+        $isCI = (bool) getenv('CI');
+        
+        if ($isCI) {
+            test()->markTestSkipped('SQL Server not available in CI environment');
+        }
+
+        if (empty(getenv('MSSQL_HOST'))) {
+            test()->markTestSkipped('SQL Server not configured');
         }
 
         $config = [
-            'driver' => 'mysql',
-            'host' => getenv('MARIADB_HOST') ?: 'localhost',
-            'port' => (int) (getenv('MARIADB_PORT') ?: 3306),
-            'database' => getenv('MARIADB_DATABASE') ?: 'test',
-            'username' => getenv('MARIADB_USERNAME') ?: 'root',
-            'password' => getenv('MARIADB_PASSWORD') ?: '',
-            'charset' => 'utf8mb4',
+            'driver' => 'sqlsrv',
+            'host' => getenv('MSSQL_HOST') ?: 'localhost',
+            'port' => (int) (getenv('MSSQL_PORT') ?: 1433),
+            'database' => getenv('MSSQL_DATABASE') ?: 'test',
+            'username' => getenv('MSSQL_USERNAME') ?: 'sa',
+            'password' => getenv('MSSQL_PASSWORD') ?: '',
         ];
 
         $db = new AsyncPDOConnection($config, 50);
 
-        StressTestHelper::setupMySQLSchema($db)->await();
+        StressTestHelper::setupSQLServerSchema($db)->await();
     });
 
     afterEach(function () use (&$db) {
@@ -40,7 +47,7 @@ describe('AsyncPDO Stress Test - MariaDB', function () {
     });
 
     it('handles light load with 10 concurrent users', function () use (&$db) {
-        $result = StressTestHelper::runStressTest($db, 10, 2)->await();
+        $result = StressTestHelper::runStressTestSQLServer($db, 10, 2)->await();
 
         expect($result['successful_operations'])->toBeGreaterThan(0);
         expect($result['operations_per_second'])->toBeGreaterThan(0);
@@ -48,7 +55,7 @@ describe('AsyncPDO Stress Test - MariaDB', function () {
     });
 
     it('handles medium load with 25 concurrent users', function () use (&$db) {
-        $result = StressTestHelper::runStressTest($db, 25, 8)->await();
+        $result = StressTestHelper::runStressTestSQLServer($db, 25, 8)->await();
 
         expect($result['successful_operations'])->toBeGreaterThan(0);
         expect($result['operations_per_second'])->toBeGreaterThan(0);
@@ -56,7 +63,7 @@ describe('AsyncPDO Stress Test - MariaDB', function () {
     });
 
     it('handles heavy load with 50 concurrent users', function () use (&$db) {
-        $result = StressTestHelper::runStressTest($db, 50, 10)->await();
+        $result = StressTestHelper::runStressTestSQLServer($db, 50, 10)->await();
 
         expect($result['successful_operations'])->toBeGreaterThan(0);
         expect($result['operations_per_second'])->toBeGreaterThan(0);
@@ -64,7 +71,7 @@ describe('AsyncPDO Stress Test - MariaDB', function () {
     });
 
     it('handles extreme load with 100 concurrent users', function () use (&$db) {
-        $result = StressTestHelper::runStressTest($db, 100, 10)->await();
+        $result = StressTestHelper::runStressTestSQLServer($db, 100, 10)->await();
 
         expect($result['successful_operations'])->toBeGreaterThan(0);
         expect($result['operations_per_second'])->toBeGreaterThan(0);
@@ -97,7 +104,7 @@ describe('AsyncPDO Stress Test - MariaDB', function () {
         $userId = StressTestHelper::simulateUserRegistration($db)->await();
         StressTestHelper::simulateOrderWorkflow($db, $userId)->await();
 
-        $results = StressTestHelper::simulateAnalyticsQueries($db)->await();
+        $results = StressTestHelper::simulateAnalyticsQueriesSQLServer($db)->await();
 
         expect($results)->toHaveCount(3);
         expect($results[0])->toBeArray();
@@ -109,7 +116,7 @@ describe('AsyncPDO Stress Test - MariaDB', function () {
         $userId = StressTestHelper::simulateUserRegistration($db)->await();
         StressTestHelper::simulateOrderWorkflow($db, $userId)->await();
 
-        $results = StressTestHelper::simulateHeavyReadOperations($db)->await();
+        $results = StressTestHelper::simulateHeavyReadOperationsSQLServer($db)->await();
 
         expect($results)->toHaveCount(3);
         foreach ($results as $result) {
@@ -121,13 +128,13 @@ describe('AsyncPDO Stress Test - MariaDB', function () {
         $userId = StressTestHelper::simulateUserRegistration($db)->await();
         StressTestHelper::simulateOrderWorkflow($db, $userId)->await();
 
-        $updatedCount = StressTestHelper::simulateInventoryUpdates($db)->await();
+        $updatedCount = StressTestHelper::simulateInventoryUpdatesSQLServer($db)->await();
 
         expect($updatedCount)->toBeGreaterThanOrEqual(0);
     });
 
     it('demonstrates true async behavior with concurrency ratio', function () use (&$db) {
-        $result = StressTestHelper::runStressTest($db, 20, 5)->await();
+        $result = StressTestHelper::runStressTestSQLServer($db, 20, 5)->await();
 
         expect($result['concurrency_ratio'])->toBeGreaterThan(0.8);
         expect($result['total_time_ms'])->toBeLessThan($result['avg_session_time_ms'] * 1.5);
