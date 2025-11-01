@@ -115,8 +115,12 @@ final class TransactionManager
             /** @var Throwable|null $lastException */
             $lastException = null;
 
+            /** @var list<array{attempt: int, error: string, time: float}> */
+            $attemptHistory = [];
+
             for ($currentAttempt = 1; $currentAttempt <= $attempts; $currentAttempt++) {
                 $connection = null;
+                $startTime = microtime(true);
 
                 try {
                     $connection = await($getConnection());
@@ -124,6 +128,12 @@ final class TransactionManager
                     return $result;
                 } catch (Throwable $e) {
                     $lastException = $e;
+
+                    $attemptHistory[] = [
+                        'attempt' => $currentAttempt,
+                        'error' => $e->getMessage(),
+                        'time' => microtime(true) - $startTime,
+                    ];
 
                     if ($currentAttempt < $attempts) {
                         continue;
@@ -136,7 +146,8 @@ final class TransactionManager
                             $e->getMessage()
                         ),
                         $attempts,
-                        $e
+                        $e,
+                        $attemptHistory
                     );
                 } finally {
                     if ($connection !== null) {
@@ -149,7 +160,8 @@ final class TransactionManager
                 throw new TransactionFailedException(
                     sprintf('Transaction failed after %d attempt(s)', $attempts),
                     $attempts,
-                    $lastException
+                    $lastException,
+                    $attemptHistory
                 );
             }
 
