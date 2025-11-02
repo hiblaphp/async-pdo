@@ -206,9 +206,10 @@ final class TransactionManager
             $this->currentTransactionPDO = $connection;
 
             try {
-                if ($isolationLevel !== null) {
-                    $this->setIsolationLevel($connection, $isolationLevel);
-                }
+                // Always set isolation level to prevent state pollution
+                // Default to database-specific default if not specified
+                $levelToSet = $isolationLevel ?? $this->getDefaultIsolationLevel($connection);
+                $this->setIsolationLevel($connection, $levelToSet);
 
                 if (!$connection->beginTransaction()) {
                     throw new TransactionException('Failed to begin transaction');
@@ -345,6 +346,31 @@ final class TransactionManager
                 $exceptions[0]
             );
         }
+    }
+
+    /**
+     * Gets the default isolation level for the database driver.
+     *
+     * Returns the appropriate default isolation level based on the database type:
+     * - MySQL: REPEATABLE READ
+     * - PostgreSQL: READ COMMITTED
+     * - SQL Server: READ COMMITTED
+     * - SQLite: SERIALIZABLE
+     *
+     * @param  PDO  $connection  PDO connection
+     * @return IsolationLevel Default isolation level for the driver
+     */
+    private function getDefaultIsolationLevel(PDO $connection): IsolationLevel
+    {
+        $driver = $connection->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        return match ($driver) {
+            'mysql' => IsolationLevel::REPEATABLE_READ,
+            'pgsql' => IsolationLevel::READ_COMMITTED,
+            'sqlsrv' => IsolationLevel::READ_COMMITTED,
+            'sqlite' => IsolationLevel::SERIALIZABLE,
+            default => IsolationLevel::READ_COMMITTED,
+        };
     }
 
     /**
