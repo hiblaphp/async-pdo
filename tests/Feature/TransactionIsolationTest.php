@@ -18,11 +18,11 @@ describe('Transaction Isolation Levels', function () {
         ], 1);
 
         $level1 = $mysql->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         }, isolationLevel: IsolationLevel::SERIALIZABLE)->await();
 
         $level2 = $mysql->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         })->await();
 
         expect($level1)->toBe('SERIALIZABLE')
@@ -40,11 +40,11 @@ describe('Transaction Isolation Levels', function () {
         ], 1);
 
         $level1 = $postgres->transaction(function ($trx) {
-            return await($trx->fetchValue('SHOW transaction_isolation'));
+            return $trx->fetchValue('SHOW transaction_isolation');
         }, isolationLevel: IsolationLevel::SERIALIZABLE)->await();
 
         $level2 = $postgres->transaction(function ($trx) {
-            return await($trx->fetchValue('SHOW transaction_isolation'));
+            return $trx->fetchValue('SHOW transaction_isolation');
         })->await();
 
         expect($level1)->toBe('serializable')
@@ -62,11 +62,11 @@ describe('Transaction Isolation Levels', function () {
         ], 1);
 
         $level1 = $mariadb->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         }, isolationLevel: IsolationLevel::READ_COMMITTED)->await();
 
         $level2 = $mariadb->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         })->await();
 
         expect($level1)->toBe('READ-COMMITTED')
@@ -115,27 +115,27 @@ describe('Transaction Isolation Levels', function () {
         ], 1);
 
         $level1 = $mysql->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         }, isolationLevel: IsolationLevel::SERIALIZABLE)->await();
 
         $level2 = $mysql->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         })->await();
 
         $level3 = $mysql->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         }, isolationLevel: IsolationLevel::READ_COMMITTED)->await();
 
         $level4 = $mysql->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         })->await();
 
         $level5 = $mysql->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         }, isolationLevel: IsolationLevel::READ_UNCOMMITTED)->await();
 
         $level6 = $mysql->transaction(function ($trx) {
-            return await($trx->fetchValue('SELECT @@transaction_isolation'));
+            return $trx->fetchValue('SELECT @@transaction_isolation');
         })->await();
 
         expect($level1)->toBe('SERIALIZABLE')

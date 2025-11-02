@@ -35,9 +35,9 @@ describe('Transaction API Integration', function () {
 
         it('commits transaction successfully', function () use (&$db) {
             $result = await($db->transaction(function ($tx) {
-                await($tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']));
-                await($tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['Jane', 'jane@example.com']));
-                return await($tx->query('SELECT COUNT(*) as count FROM users'));
+                $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
+                $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['Jane', 'jane@example.com']);
+                return $tx->query('SELECT COUNT(*) as count FROM users');
             }));
 
             expect($result[0]['count'])->toBe(2);
@@ -51,7 +51,7 @@ describe('Transaction API Integration', function () {
         it('rolls back transaction on error', function () use (&$db) {
             try {
                 await($db->transaction(function ($tx) {
-                    await($tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']));
+                    $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
                     throw new Exception('Simulated error');
                 }));
             } catch (TransactionFailedException $e) {
@@ -69,7 +69,7 @@ describe('Transaction API Integration', function () {
                 $tx->onCommit(function () use (&$commitCalled) {
                     $commitCalled = true;
                 });
-                await($tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']));
+                $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
             }));
 
             expect($commitCalled)->toBeTrue();
@@ -83,7 +83,7 @@ describe('Transaction API Integration', function () {
                     $tx->onRollback(function () use (&$rollbackCalled) {
                         $rollbackCalled = true;
                     });
-                    await($tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']));
+                    $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
                     throw new Exception('Force rollback');
                 }));
             } catch (TransactionFailedException $e) {
@@ -101,7 +101,7 @@ describe('Transaction API Integration', function () {
                 if ($attempts < 3) {
                     throw new Exception('Temporary failure');
                 }
-                await($tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']));
+                $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
             }, 3));
 
             expect($attempts)->toBe(3);
@@ -111,15 +111,15 @@ describe('Transaction API Integration', function () {
 
         it('uses Transaction query methods', function () use (&$db) {
             await($db->transaction(function ($tx) {
-                await($tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']));
-                $user = await($tx->fetchOne('SELECT * FROM users WHERE name = ?', ['John']));
+                $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
+                $user = $tx->fetchOne('SELECT * FROM users WHERE name = ?', ['John']);
                 expect($user['name'])->toBe('John');
 
-                $count = await($tx->fetchValue('SELECT COUNT(*) FROM users'));
+                $count = $tx->fetchValue('SELECT COUNT(*) FROM users');
                 expect($count)->toBe(1);
 
-                await($tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['Jane', 'jane@example.com']));
-                $users = await($tx->query('SELECT * FROM users ORDER BY id'));
+                $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['Jane', 'jane@example.com']);
+                $users = $tx->query('SELECT * FROM users ORDER BY id');
                 expect($users)->toHaveCount(2);
             }));
         });
@@ -143,7 +143,7 @@ describe('Transaction API Integration', function () {
                 $tx->onCommit(function () use (&$callback2Called) {
                     $callback2Called = true;
                 });
-                await($tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']));
+                $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
             }));
 
             expect($callback1Called)->toBeTrue();
@@ -199,15 +199,15 @@ describe('Transaction API Integration', function () {
 
         it('commits transaction successfully', function () use (&$db) {
             $result = await($db->transaction(function ($tx) {
-                await($tx->execute(
+                $tx->execute(
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Account A', 1000.00]
-                ));
-                await($tx->execute(
+                );
+                $tx->execute(
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Account B', 2000.00]
-                ));
-                return await($tx->query('SELECT COUNT(*) as count FROM transaction_test'));
+                );
+                return $tx->query('SELECT COUNT(*) as count FROM transaction_test');
             }));
 
             expect($result[0]['count'])->toBe(2);
@@ -221,10 +221,10 @@ describe('Transaction API Integration', function () {
         it('rolls back transaction on error', function () use (&$db) {
             try {
                 await($db->transaction(function ($tx) {
-                    await($tx->execute(
+                    $tx->execute(
                         'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                         ['Account A', 1000.00]
-                    ));
+                    );
                     throw new Exception('Simulated error');
                 }));
             } catch (TransactionFailedException $e) {
@@ -247,24 +247,24 @@ describe('Transaction API Integration', function () {
 
             try {
                 await($db->transaction(function ($tx) {
-                    $accountA = await($tx->fetchOne(
+                    $accountA = $tx->fetchOne(
                         'SELECT * FROM transaction_test WHERE name = ?',
                         ['Account A']
-                    ));
+                    );
 
                     $transferAmount = 1500.00;
                     if ($accountA['balance'] < $transferAmount) {
                         throw new Exception('Insufficient funds');
                     }
 
-                    await($tx->execute(
+                    $tx->execute(
                         'UPDATE transaction_test SET balance = balance - ? WHERE name = ?',
                         [$transferAmount, 'Account A']
-                    ));
-                    await($tx->execute(
+                    );
+                    $tx->execute(
                         'UPDATE transaction_test SET balance = balance + ? WHERE name = ?',
                         [$transferAmount, 'Account B']
-                    ));
+                    );
                 }));
             } catch (TransactionFailedException $e) {
                 // Expected
@@ -296,14 +296,14 @@ describe('Transaction API Integration', function () {
             await($db->transaction(function ($tx) {
                 $transferAmount = 300.00;
 
-                await($tx->execute(
+                $tx->execute(
                     'UPDATE transaction_test SET balance = balance - ? WHERE name = ?',
                     [$transferAmount, 'Account A']
-                ));
-                await($tx->execute(
+                );
+                $tx->execute(
                     'UPDATE transaction_test SET balance = balance + ? WHERE name = ?',
                     [$transferAmount, 'Account B']
-                ));
+                );
             }));
 
             $accountA = await($db->fetchOne(
@@ -327,10 +327,10 @@ describe('Transaction API Integration', function () {
                 if ($attempts < 2) {
                     throw new Exception('Deadlock detected');
                 }
-                await($tx->execute(
+                $tx->execute(
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Retry Test', 100.00]
-                ));
+                );
             }, 3));
 
             expect($attempts)->toBe(2);
@@ -345,17 +345,17 @@ describe('Transaction API Integration', function () {
             ));
 
             await($db->transaction(function ($tx) {
-                $account1 = await($tx->fetchOne(
+                $account1 = $tx->fetchOne(
                     'SELECT balance FROM transaction_test WHERE name = ?',
                     ['Test Account']
-                ));
+                );
 
                 expect((float) $account1['balance'])->toBe(1000.00);
 
-                $account2 = await($tx->fetchOne(
+                $account2 = $tx->fetchOne(
                     'SELECT balance FROM transaction_test WHERE name = ?',
                     ['Test Account']
-                ));
+                );
 
                 expect((float) $account2['balance'])->toBe(1000.00);
             }, 1, IsolationLevel::REPEATABLE_READ));
@@ -368,20 +368,20 @@ describe('Transaction API Integration', function () {
             ));
 
             await($db->transaction(function ($tx) {
-                $account = await($tx->fetchOne(
+                $account = $tx->fetchOne(
                     'SELECT balance FROM transaction_test WHERE name = ?',
                     ['Test Account']
-                ));
+                );
 
-                await($tx->execute(
+                $tx->execute(
                     'UPDATE transaction_test SET balance = ? WHERE name = ?',
                     [1500.00, 'Test Account']
-                ));
+                );
 
-                $updated = await($tx->fetchOne(
+                $updated = $tx->fetchOne(
                     'SELECT balance FROM transaction_test WHERE name = ?',
                     ['Test Account']
-                ));
+                );
 
                 expect((float) $updated['balance'])->toBe(1500.00);
             }, 1, IsolationLevel::SERIALIZABLE));
@@ -436,15 +436,15 @@ describe('Transaction API Integration', function () {
 
         it('commits transaction successfully', function () use (&$db) {
             $result = await($db->transaction(function ($tx) {
-                await($tx->execute(
+                $tx->execute(
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Account A', 1000.00]
-                ));
-                await($tx->execute(
+                );
+                $tx->execute(
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Account B', 2000.00]
-                ));
-                return await($tx->query('SELECT COUNT(*) as count FROM transaction_test'));
+                );
+                return $tx->query('SELECT COUNT(*) as count FROM transaction_test');
             }));
 
             expect((int) $result[0]['count'])->toBe(2);
@@ -453,10 +453,10 @@ describe('Transaction API Integration', function () {
         it('rolls back transaction on error', function () use (&$db) {
             try {
                 await($db->transaction(function ($tx) {
-                    await($tx->execute(
+                    $tx->execute(
                         'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                         ['Account A', 1000.00]
-                    ));
+                    );
                     throw new Exception('Simulated error');
                 }));
             } catch (TransactionFailedException $e) {
@@ -474,16 +474,16 @@ describe('Transaction API Integration', function () {
             ));
 
             await($db->transaction(function ($tx) {
-                $account = await($tx->fetchOne(
+                $account = $tx->fetchOne(
                     'SELECT * FROM transaction_test WHERE name = ? FOR UPDATE',
                     ['Shared Account']
-                ));
+                );
 
                 $newBalance = (float) $account['balance'] + 500.00;
-                await($tx->execute(
+                $tx->execute(
                     'UPDATE transaction_test SET balance = ? WHERE name = ?',
                     [$newBalance, 'Shared Account']
-                ));
+                );
             }));
 
             $finalBalance = await($db->fetchValue(
@@ -500,10 +500,10 @@ describe('Transaction API Integration', function () {
             ));
 
             await($db->transaction(function ($tx) {
-                $account = await($tx->fetchOne(
+                $account = $tx->fetchOne(
                     'SELECT balance FROM transaction_test WHERE name = ?',
                     ['Test Account']
-                ));
+                );
 
                 expect((float) $account['balance'])->toBe(1000.00);
             }, 1, IsolationLevel::READ_COMMITTED));
@@ -523,14 +523,14 @@ describe('Transaction API Integration', function () {
             await($db->transaction(function ($tx) {
                 $transferAmount = 300.00;
 
-                await($tx->execute(
+                $tx->execute(
                     'UPDATE transaction_test SET balance = balance - ? WHERE name = ?',
                     [$transferAmount, 'Account A']
-                ));
-                await($tx->execute(
+                );
+                $tx->execute(
                     'UPDATE transaction_test SET balance = balance + ? WHERE name = ?',
                     [$transferAmount, 'Account B']
-                ));
+                );
             }));
 
             $accountA = await($db->fetchOne(
@@ -554,10 +554,10 @@ describe('Transaction API Integration', function () {
                 if ($attempts < 2) {
                     throw new Exception('Temporary error');
                 }
-                await($tx->execute(
+                $tx->execute(
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Retry Test', 100.00]
-                ));
+                );
             }, 3));
 
             expect($attempts)->toBe(2);
@@ -572,10 +572,10 @@ describe('Transaction API Integration', function () {
                 $tx->onCommit(function () use (&$commitCalled) {
                     $commitCalled = true;
                 });
-                await($tx->execute(
+                $tx->execute(
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Test', 100.00]
-                ));
+                );
             }));
 
             expect($commitCalled)->toBeTrue();
@@ -587,10 +587,10 @@ describe('Transaction API Integration', function () {
                     $tx->onRollback(function () use (&$rollbackCalled) {
                         $rollbackCalled = true;
                     });
-                    await($tx->execute(
+                    $tx->execute(
                         'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                         ['Test2', 200.00]
-                    ));
+                    );
                     throw new Exception('Force rollback');
                 }));
             } catch (TransactionFailedException $e) {
@@ -649,15 +649,15 @@ describe('Transaction API Integration', function () {
 
         it('commits transaction successfully', function () use (&$db) {
             $result = await($db->transaction(function ($tx) {
-                await($tx->execute(
+                $tx->execute(
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Account A', 1000.00]
-                ));
-                await($tx->execute(
+                );
+                $tx->execute(
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Account B', 2000.00]
-                ));
-                return await($tx->query('SELECT COUNT(*) as count FROM transaction_test'));
+                );
+                return $tx->query('SELECT COUNT(*) as count FROM transaction_test');
             }));
 
             expect((int) $result[0]['count'])->toBe(2);
@@ -666,10 +666,10 @@ describe('Transaction API Integration', function () {
         it('rolls back transaction on error', function () use (&$db) {
             try {
                 await($db->transaction(function ($tx) {
-                    await($tx->execute(
+                    $tx->execute(
                         'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                         ['Account A', 1000.00]
-                    ));
+                    );
                     throw new Exception('Simulated error');
                 }));
             } catch (TransactionFailedException $e) {
@@ -687,10 +687,10 @@ describe('Transaction API Integration', function () {
             ));
 
             await($db->transaction(function ($tx) {
-                $account = await($tx->fetchOne(
+                $account = $tx->fetchOne(
                     'SELECT balance FROM transaction_test WHERE name = ?',
                     ['Test Account']
-                ));
+                );
 
                 expect((float) $account['balance'])->toBe(1000.00);
             }, 1, IsolationLevel::READ_COMMITTED));

@@ -59,7 +59,7 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
                         COUNT(t2.id) as count
                     FROM pool_test t1
                     LEFT JOIN pool_test t2 ON t2.id <= t1.id
-                    WHERE t1.id BETWEEN '.($i * 100).' AND '.($i * 100 + 50).'
+                    WHERE t1.id BETWEEN ' . ($i * 100) . ' AND ' . ($i * 100 + 50) . '
                     GROUP BY t1.id, t1.data
                     ORDER BY t1.id
                 '));
@@ -91,7 +91,7 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
 
                 $result = await($db->query('
                     SELECT * FROM pool_test 
-                    WHERE id BETWEEN '.($i * 100).' AND '.(($i * 100) + 50).'
+                    WHERE id BETWEEN ' . ($i * 100) . ' AND ' . (($i * 100) + 50) . '
                 '));
 
                 $endTime = microtime(true);
@@ -118,8 +118,8 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
         Task::runAll($promises);
         $totalTime = (microtime(true) - $start) * 1000;
 
-        expect($timeline['DB-1-start'])->toBeLessThan(5);
-        expect($timeline['DELAY-1-start'])->toBeLessThan(5);
+        expect($timeline['DB-1-start'])->toBeLessThan(5 * 0.05);
+        expect($timeline['DELAY-1-start'])->toBeLessThan(5 * 0.05);
         expect($timeline['DB-1-end'])->toBeLessThan($timeline['DELAY-1-end']);
         expect($totalTime)->toBeLessThan(100);
     });
@@ -139,8 +139,8 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
                 $result = await($db->fetchOne('
                 SELECT COUNT(*) as total
                 FROM pool_test t1, pool_test t2
-                WHERE t1.id < '.(100 + ($i * 50)).'
-                AND t2.id < '.(100 + ($i * 50)).'
+                WHERE t1.id < ' . (100 + ($i * 50)) . '
+                AND t2.id < ' . (100 + ($i * 50)) . '
                 AND t1.id < t2.id
             '));
 

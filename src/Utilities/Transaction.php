@@ -37,11 +37,11 @@ final class Transaction
      *
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
-     * @return PromiseInterface<array<int, array<string, mixed>>> Promise resolving to array of associative arrays
+     * @return array<int, array<string, mixed>> Array of associative arrays
      */
-    public function query(string $sql, array $params = []): PromiseInterface
+    public function query(string $sql, array $params = []): array
     {
-        return async(function () use ($sql, $params): array {
+        $result = await(async(function () use ($sql, $params): array {
             $result = $this->queryExecutor->executeQuery(
                 $this->pdo,
                 $sql,
@@ -50,7 +50,9 @@ final class Transaction
             );
             /** @var array<int, array<string, mixed>> */
             return $result;
-        });
+        }));
+
+        return $result;
     }
 
     /**
@@ -58,11 +60,11 @@ final class Transaction
      *
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
-     * @return PromiseInterface<array<string, mixed>|false> Promise resolving to associative array or false if no rows
+     * @return array<string, mixed>|false Associative array or false if no rows
      */
-    public function fetchOne(string $sql, array $params = []): PromiseInterface
+    public function fetchOne(string $sql, array $params = []): array|false
     {
-        return async(function () use ($sql, $params): array|false {
+        $result = await(async(function () use ($sql, $params): array|false {
             $result = $this->queryExecutor->executeQuery(
                 $this->pdo,
                 $sql,
@@ -71,20 +73,21 @@ final class Transaction
             );
             /** @var array<string, mixed>|false */
             return $result;
-        });
-    }
+        }));
 
+        return $result;
+    }
 
     /**
      * Executes an INSERT, UPDATE, or DELETE statement and returns affected row count.
      *
      * @param  string  $sql  SQL statement with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
-     * @return PromiseInterface<int> Promise resolving to number of affected rows
+     * @return int Number of affected rows
      */
-    public function execute(string $sql, array $params = []): PromiseInterface
+    public function execute(string $sql, array $params = []): int
     {
-        return async(function () use ($sql, $params): int {
+        $result = await(async(function () use ($sql, $params): int {
             $result = $this->queryExecutor->executeQuery(
                 $this->pdo,
                 $sql,
@@ -93,23 +96,26 @@ final class Transaction
             );
             /** @var int */
             return $result;
-        });
+        }));
+
+        return $result;
     }
+
     /**
      * Executes a query and returns a single column value from the first row.
      *
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
-     * @return PromiseInterface<mixed> Promise resolving to scalar value or false if no rows
+     * @return mixed Scalar value or false if no rows
      */
-    public function fetchValue(string $sql, array $params = []): PromiseInterface
+    public function fetchValue(string $sql, array $params = []): mixed
     {
-        return async(fn() => $this->queryExecutor->executeQuery(
+        return await(async(fn() => $this->queryExecutor->executeQuery(
             $this->pdo,
             $sql,
             $params,
             'fetchValue'
-        ));
+        )));
     }
 
     /**

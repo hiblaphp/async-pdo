@@ -206,10 +206,10 @@ final class TransactionManager
             $this->currentTransactionPDO = $connection;
 
             try {
-                // Always set isolation level to prevent state pollution
-                // Default to database-specific default if not specified
                 $levelToSet = $isolationLevel ?? $this->getDefaultIsolationLevel($connection);
-                $this->setIsolationLevel($connection, $levelToSet);
+                if ($connection->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite') {
+                    $this->setIsolationLevel($connection, $levelToSet);
+                }
 
                 if (!$connection->beginTransaction()) {
                     throw new TransactionException('Failed to begin transaction');
