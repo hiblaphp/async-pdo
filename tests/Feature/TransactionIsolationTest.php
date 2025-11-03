@@ -87,9 +87,6 @@ describe('Transaction Isolation Levels', function () {
             'username' => 'sa',
             'password' => 'Testpassword123@',
             'database' => 'master',
-            'options' => [
-                PDO::SQLSRV_ATTR_ENCODING => PDO::SQLSRV_ENCODING_UTF8,
-            ],
         ], 1);
 
         $level1 = $sqlserver->transaction(function ($trx) {

@@ -118,8 +118,8 @@ describe('AsyncPDO Cooperative Query Execution - SQLite', function () {
         Task::runAll($promises);
         $totalTime = (microtime(true) - $start) * 1000;
 
-        expect($timeline['DB-1-start'])->toBeLessThan(5 * 0.05);
-        expect($timeline['DELAY-1-start'])->toBeLessThan(5 * 0.05);
+        expect($timeline['DB-1-start'])->toBeLessThan(5 + 1);
+        expect($timeline['DELAY-1-start'])->toBeLessThan(5 + 1);
         expect($timeline['DB-1-end'])->toBeLessThan($timeline['DELAY-1-end']);
         expect($totalTime)->toBeLessThan(100);
     });

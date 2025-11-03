@@ -22,10 +22,6 @@ use function Hibla\await;
 
 /**
  * Instance-based Asynchronous PDO API for independent database connections.
- *
- * This class provides non-static methods for managing a single connection pool.
- * Each instance is completely independent, allowing true multi-database support
- * without global state.
  */
 final class AsyncPDOConnection
 {
@@ -43,9 +39,6 @@ final class AsyncPDOConnection
 
     /**
      * Creates a new independent AsyncPDOConnection instance.
-     *
-     * Each instance manages its own connection pool and is completely
-     * independent from other instances, allowing true multi-database support.
      *
      * @param  array<string, mixed>  $dbConfig  Database configuration array containing:
      *                                          - driver: Database driver (e.g., 'mysql', 'pgsql')
@@ -87,10 +80,6 @@ final class AsyncPDOConnection
     /**
      * Registers a callback to execute when the current transaction commits.
      *
-     * This method can only be called from within an active transaction.
-     * The callback will be executed after the transaction successfully commits
-     * but before the transaction() method returns.
-     *
      * @param  callable(): void  $callback  Callback to execute on commit
      * @return void
      *
@@ -105,10 +94,6 @@ final class AsyncPDOConnection
     /**
      * Registers a callback to execute when the current transaction rolls back.
      *
-     * This method can only be called from within an active transaction.
-     * The callback will be executed after the transaction is rolled back
-     * but before the exception is re-thrown.
-     *
      * @param  callable(): void  $callback  Callback to execute on rollback
      * @return void
      *
@@ -122,11 +107,6 @@ final class AsyncPDOConnection
 
     /**
      * Executes a callback with a connection from this instance's pool.
-     *
-     * Automatically handles connection acquisition and release. The callback
-     * receives a PDO instance and can perform any database operations.
-     * The connection is guaranteed to be released back to the pool even if
-     * the callback throws an exception.
      *
      * @template TResult
      *
@@ -155,9 +135,6 @@ final class AsyncPDOConnection
     /**
      * Executes a SELECT query and returns all matching rows.
      *
-     * The query is executed using PDO's prepared statement API.
-     * Parameters are safely bound using prepared statements to prevent SQL injection.
-     *
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<array<int, array<string, mixed>>> Promise resolving to array of associative arrays
@@ -173,8 +150,6 @@ final class AsyncPDOConnection
 
     /**
      * Executes a SELECT query and returns the first matching row.
-     *
-     * The query is executed using PDO's prepared statement API.
      * Returns false if no rows match the query.
      *
      * @param  string  $sql  SQL query with optional parameter placeholders
@@ -191,10 +166,7 @@ final class AsyncPDOConnection
     }
 
     /**
-     * Executes an INSERT, UPDATE, or DELETE statement and returns affected row count.
-     *
-     * The statement is executed using PDO's prepared statement API.
-     * Returns the number of rows affected by the operation.
+     * Executes an INSERT, UPDATE, or DELETE statement and returns affected row count..
      *
      * @param  string  $sql  SQL statement with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
@@ -212,9 +184,6 @@ final class AsyncPDOConnection
     /**
      * Executes a query and returns a single column value from the first row.
      *
-     * Useful for queries that return a single scalar value like COUNT, MAX, etc.
-     * Returns false if the query returns no rows.
-     *
      * @param  string  $sql  SQL query with optional parameter placeholders
      * @param  array<string|int, mixed>  $params  Parameter values for prepared statement
      * @return PromiseInterface<mixed> Promise resolving to scalar value or false if no rows
@@ -229,11 +198,7 @@ final class AsyncPDOConnection
 
     /**
      * Executes multiple operations within a database transaction.
-     *
      * Automatically handles transaction begin/commit/rollback. The callback receives
-     * a Transaction object for executing queries within the transaction context.
-     * If the callback throws an exception, the transaction is rolled back and retried
-     * based on the specified number of attempts.
      *
      * Registered onCommit() callbacks are executed after successful commit.
      * Registered onRollback() callbacks are executed after rollback.
@@ -265,9 +230,6 @@ final class AsyncPDOConnection
     /**
      * Gets statistics about this instance's connection pool.
      *
-     * Returns information about the current state of the connection pool,
-     * including total connections, available connections, and connections in use.
-     *
      * @return array<string, int|bool> Pool statistics including:
      *                                  - total: Total number of connections in pool
      *                                  - available: Number of available connections
@@ -283,9 +245,6 @@ final class AsyncPDOConnection
     /**
      * Gets the most recently used connection from this pool.
      *
-     * This is primarily useful for debugging and testing purposes.
-     * Returns null if no connection has been used yet.
-     *
      * @return PDO|null The last connection or null if none used yet
      *
      * @throws NotInitializedException If this instance is not initialized
@@ -297,12 +256,11 @@ final class AsyncPDOConnection
 
     /**
      * Executes a query with the specified result processing type.
-     *
-     * This method handles the complete lifecycle of query execution including
-     * connection acquisition, query execution, and connection release.
      * 
      * If called from within a transaction, it reuses the transaction's connection.
      *
+     * @internal this is for internal usage
+     * 
      * @param  string  $sql  SQL query/statement
      * @param  array<string|int, mixed>  $params  Query parameters
      * @param  string  $resultType  Type of result processing ('fetchAll', 'fetchOne', 'execute', 'fetchValue')
@@ -342,7 +300,9 @@ final class AsyncPDOConnection
 
     /**
      * Gets the connection pool instance.
-     *
+     * 
+     * @internal this is for internal usage
+     * 
      * @return PoolManager The initialized connection pool
      *
      * @throws NotInitializedException If this instance is not initialized
@@ -360,7 +320,9 @@ final class AsyncPDOConnection
 
     /**
      * Gets the query executor instance.
-     *
+     * 
+     * @internal this is for internal usage
+     * 
      * @return QueryExecutor The initialized query executor
      *
      * @throws NotInitializedException If this instance is not initialized
@@ -378,7 +340,9 @@ final class AsyncPDOConnection
 
     /**
      * Gets the transaction manager instance.
-     *
+     * 
+     * @internal this is for internal usage
+     * 
      * @return TransactionManager The initialized transaction manager
      *
      * @throws NotInitializedException If this instance is not initialized

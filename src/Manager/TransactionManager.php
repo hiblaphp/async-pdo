@@ -43,10 +43,6 @@ final class TransactionManager
     /**
      * Registers a callback to execute when the current transaction commits.
      *
-     * This method can only be called from within an active transaction.
-     * The callback will be executed after the transaction successfully commits
-     * but before the transaction() method returns.
-     *
      * @param  callable(): void  $callback  Callback to execute on commit
      * @return void
      *
@@ -80,10 +76,6 @@ final class TransactionManager
 
     /**
      * Executes a transaction with retry logic and optional isolation level.
-     *
-     * Automatically handles transaction begin/commit/rollback. The callback receives
-     * a Transaction object for executing queries. If the callback throws an exception,
-     * the transaction is rolled back and retried based on the specified number of attempts.
      *
      * Registered onCommit() callbacks are executed after successful commit.
      * Registered onRollback() callbacks are executed after rollback.
@@ -249,10 +241,6 @@ final class TransactionManager
 
     /**
      * Registers a callback to execute when the current transaction rolls back.
-     *
-     * This method can only be called from within an active transaction.
-     * The callback will be executed after the transaction is rolled back
-     * but before the exception is re-thrown.
      *
      * @param  callable(): void  $callback  Callback to execute on rollback
      * @return void

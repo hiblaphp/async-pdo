@@ -21,9 +21,6 @@ final class QueryExecutor
     /**
      * Executes a query with the specified result processing type.
      *
-     * This method handles the complete lifecycle of query execution including
-     * query preparation, execution, and result processing.
-     *
      * @param  PDO  $pdo  PDO connection
      * @param  string  $sql  SQL query/statement
      * @param  array<string|int, mixed>  $params  Query parameters
@@ -80,9 +77,6 @@ final class QueryExecutor
     /**
      * Processes a query result based on the specified result type.
      *
-     * This method converts the raw PDO result into the appropriate
-     * PHP data structure based on the requested result type.
-     *
      * @param  PDOStatement  $stmt  PDO statement
      * @param  string  $resultType  Type of result processing
      * @return mixed Processed result based on result type
@@ -101,9 +95,6 @@ final class QueryExecutor
     /**
      * Fetches all rows from a query result.
      *
-     * Converts the PDO result into an array of associative arrays,
-     * where each array represents a row with column names as keys.
-     *
      * @param  PDOStatement  $stmt  PDO statement
      * @return array<int, array<string, mixed>> Array of associative arrays
      */
@@ -117,9 +108,6 @@ final class QueryExecutor
 
     /**
      * Fetches the first row from a query result.
-     *
-     * Converts the first row of the PDO result into an associative array
-     * with column names as keys. Returns false if no rows exist.
      *
      * @param  PDOStatement  $stmt  PDO statement
      * @return array<string, mixed>|false Associative array or false if no rows
@@ -135,9 +123,6 @@ final class QueryExecutor
     /**
      * Fetches a single column value from the first row.
      *
-     * Extracts the first column of the first row from the result set.
-     * Useful for aggregate queries like COUNT, SUM, MAX, etc.
-     *
      * @param  PDOStatement  $stmt  PDO statement
      * @return mixed Scalar value or false if no rows
      */
@@ -148,8 +133,6 @@ final class QueryExecutor
 
     /**
      * Gets the number of affected rows from a query result.
-     *
-     * Returns the count of rows affected by an INSERT, UPDATE, or DELETE statement.
      *
      * @param  PDOStatement  $stmt  PDO statement
      * @return int Number of affected rows
