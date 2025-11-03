@@ -14,7 +14,7 @@ describe('Transaction Isolation Levels', function () {
         }
         $mysql = new AsyncPDOConnection([
             'driver' => 'mysql',
-            'host' => 'localhost',
+            'host' => $host,
             'port' => 3306,
             'username' => 'root',
             'password' => 'root_password',
