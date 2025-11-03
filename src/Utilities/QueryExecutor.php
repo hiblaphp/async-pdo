@@ -12,7 +12,7 @@ use Throwable;
 
 /**
  * Handles query execution and result processing for PDO.
- * 
+ *
  * This class manages the complete lifecycle of PDO query execution including
  * query preparation, execution, and result processing with proper error handling.
  */
@@ -37,7 +37,7 @@ final class QueryExecutor
     ): mixed {
         try {
             $stmt = $pdo->prepare($sql);
-            
+
             if ($stmt === false) {
                 throw new QueryException(
                     'Failed to prepare statement',
@@ -46,7 +46,7 @@ final class QueryExecutor
                 );
             }
 
-            if (!$stmt->execute($params)) {
+            if (! $stmt->execute($params)) {
                 throw new QueryException(
                     'Failed to execute statement',
                     $sql,

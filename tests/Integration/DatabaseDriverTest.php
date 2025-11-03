@@ -35,7 +35,7 @@ describe('Database Drivers Integration', function () {
             }
 
             $host = getenv('MYSQL_HOST') ?: 'localhost';
-            if ($host === '127.0.0.1' && !getenv('CI')) {
+            if ($host === '127.0.0.1' && ! getenv('CI')) {
                 $host = 'localhost';
             }
 
@@ -47,7 +47,6 @@ describe('Database Drivers Integration', function () {
                 'username' => getenv('MYSQL_USERNAME') ?: 'root',
                 'password' => getenv('MYSQL_PASSWORD') ?: '',
             ];
-
 
             $pool = new PoolManager($config, 2);
             $connection = $pool->get()->await();
@@ -72,7 +71,7 @@ describe('Database Drivers Integration', function () {
             }
 
             $host = getenv('MYSQL_HOST') ?: 'localhost';
-            if ($host === '127.0.0.1' && !getenv('CI')) {
+            if ($host === '127.0.0.1' && ! getenv('CI')) {
                 $host = 'localhost';
             }
 

@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use function Hibla\async;
+
 use Hibla\AsyncPDO\AsyncPDOConnection;
+
 use function Hibla\await;
 use function Hibla\delay;
+
 use Hibla\Task\Task;
 
 if (getenv('CI')) {

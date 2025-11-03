@@ -6,7 +6,7 @@ namespace Hibla\AsyncPDO\Enums;
 
 /**
  * Database transaction isolation levels.
- * 
+ *
  * Defines the standard SQL isolation levels for transaction control.
  */
 enum IsolationLevel: string

@@ -4,23 +4,26 @@ declare(strict_types=1);
 
 namespace Hibla\AsyncPDO\Manager;
 
+use function Hibla\async;
+
 use Hibla\AsyncPDO\Enums\IsolationLevel;
 use Hibla\AsyncPDO\Exceptions\NotInTransactionException;
 use Hibla\AsyncPDO\Exceptions\TransactionException;
 use Hibla\AsyncPDO\Exceptions\TransactionFailedException;
 use Hibla\AsyncPDO\Utilities\QueryExecutor;
 use Hibla\AsyncPDO\Utilities\Transaction;
+
+use function Hibla\await;
+
 use Hibla\Promise\Interfaces\PromiseInterface;
 use PDO;
+
 use Throwable;
 use WeakMap;
 
-use function Hibla\async;
-use function Hibla\await;
-
 /**
  * Manages database transactions and their callbacks.
- * 
+ *
  * This class handles transaction lifecycle including begin/commit/rollback operations,
  * retry logic, isolation level management, and execution of registered callbacks.
  */
@@ -59,7 +62,7 @@ final class TransactionManager
             );
         }
 
-        if (!isset($this->transactionCallbacks[$pdo])) {
+        if (! isset($this->transactionCallbacks[$pdo])) {
             throw new TransactionException('Transaction state not found.');
         }
 
@@ -117,6 +120,7 @@ final class TransactionManager
                 try {
                     $connection = await($getConnection());
                     $result = await($this->runTransaction($connection, $callback, $queryExecutor, $isolationLevel));
+
                     return $result;
                 } catch (Throwable $e) {
                     $lastException = $e;
@@ -203,7 +207,7 @@ final class TransactionManager
                     $this->setIsolationLevel($connection, $levelToSet);
                 }
 
-                if (!$connection->beginTransaction()) {
+                if (! $connection->beginTransaction()) {
                     throw new TransactionException('Failed to begin transaction');
                 }
 
@@ -214,7 +218,7 @@ final class TransactionManager
                     $result = await($result);
                 }
 
-                if (!$connection->commit()) {
+                if (! $connection->commit()) {
                     throw new TransactionException('Failed to commit transaction');
                 }
 
@@ -258,7 +262,7 @@ final class TransactionManager
             );
         }
 
-        if (!isset($this->transactionCallbacks[$pdo])) {
+        if (! isset($this->transactionCallbacks[$pdo])) {
             throw new TransactionException('Transaction state not found.');
         }
 
@@ -300,7 +304,7 @@ final class TransactionManager
      */
     private function executeCallbacks(PDO $connection, string $type): void
     {
-        if (!isset($this->transactionCallbacks[$connection])) {
+        if (! isset($this->transactionCallbacks[$connection])) {
             return;
         }
 
@@ -390,6 +394,7 @@ final class TransactionManager
             $errorInfo = $connection->errorInfo();
             assert(is_string($isolationLevel->value));
             assert(is_string($errorInfo[2]));
+
             throw new TransactionException(
                 sprintf(
                     'Failed to set isolation level to %s: %s',

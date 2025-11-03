@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use function Hibla\async;
+
 use Hibla\AsyncPDO\AsyncPDOConnection;
+
 use function Hibla\await;
 use function Hibla\delay;
+
 use Hibla\Task\Task;
 
 describe('AsyncPDO Cooperative Query Execution - MySQL', function () {
@@ -18,7 +21,7 @@ describe('AsyncPDO Cooperative Query Execution - MySQL', function () {
         }
 
         $host = getenv('MYSQL_HOST') ?: 'localhost';
-        if ($host === '127.0.0.1' && !getenv('CI')) {
+        if ($host === '127.0.0.1' && ! getenv('CI')) {
             $host = 'localhost';
         }
 

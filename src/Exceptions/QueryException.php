@@ -9,7 +9,7 @@ use Throwable;
 
 /**
  * Exception thrown when a database query or statement execution fails.
- * 
+ *
  * This exception provides context about the failed query including the SQL
  * statement, parameters used, and the underlying PDO error.
  */
@@ -62,15 +62,15 @@ final class QueryException extends RuntimeException
     public function getDetails(): string
     {
         $details = $this->getMessage();
-        
+
         if ($this->sql !== '') {
             $details .= "\nSQL: " . $this->sql;
         }
-        
+
         if (count($this->params) > 0) {
             $details .= "\nParameters: " . json_encode($this->params, JSON_PRETTY_PRINT);
         }
-        
+
         return $details;
     }
 }

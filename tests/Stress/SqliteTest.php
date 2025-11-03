@@ -16,7 +16,7 @@ describe('AsyncPDO Stress Test - SQLite', function () {
         ];
 
         $db = new AsyncPDOConnection($config, 50);
-        
+
         StressTestHelper::setupSQLiteSchema($db)->await();
     });
 

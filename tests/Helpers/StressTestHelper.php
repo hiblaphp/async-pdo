@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Tests\Helpers;
 
 use function Hibla\async;
-use function Hibla\await;
 
 use Hibla\AsyncPDO\AsyncPDOConnection;
+
 use Hibla\AsyncPDO\Utilities\Transaction;
+
+use function Hibla\await;
+
 use Hibla\Promise\Interfaces\PromiseInterface;
 use Hibla\Promise\Promise;
 

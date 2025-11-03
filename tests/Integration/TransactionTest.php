@@ -37,6 +37,7 @@ describe('Transaction API Integration', function () {
             $result = await($db->transaction(function ($tx) {
                 $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
                 $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['Jane', 'jane@example.com']);
+
                 return $tx->query('SELECT COUNT(*) as count FROM users');
             }));
 
@@ -52,6 +53,7 @@ describe('Transaction API Integration', function () {
             try {
                 await($db->transaction(function ($tx) {
                     $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
+
                     throw new Exception('Simulated error');
                 }));
             } catch (TransactionFailedException $e) {
@@ -84,6 +86,7 @@ describe('Transaction API Integration', function () {
                         $rollbackCalled = true;
                     });
                     $tx->execute('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
+
                     throw new Exception('Force rollback');
                 }));
             } catch (TransactionFailedException $e) {
@@ -161,10 +164,9 @@ describe('Transaction API Integration', function () {
             }
 
             $host = getenv('MYSQL_HOST') ?: 'localhost';
-            if ($host === '127.0.0.1' && !getenv('CI')) {
+            if ($host === '127.0.0.1' && ! getenv('CI')) {
                 $host = 'localhost';
             }
-
 
             $config = [
                 'driver' => 'mysql',
@@ -207,6 +209,7 @@ describe('Transaction API Integration', function () {
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Account B', 2000.00]
                 );
+
                 return $tx->query('SELECT COUNT(*) as count FROM transaction_test');
             }));
 
@@ -225,6 +228,7 @@ describe('Transaction API Integration', function () {
                         'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                         ['Account A', 1000.00]
                     );
+
                     throw new Exception('Simulated error');
                 }));
             } catch (TransactionFailedException $e) {
@@ -444,6 +448,7 @@ describe('Transaction API Integration', function () {
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Account B', 2000.00]
                 );
+
                 return $tx->query('SELECT COUNT(*) as count FROM transaction_test');
             }));
 
@@ -457,6 +462,7 @@ describe('Transaction API Integration', function () {
                         'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                         ['Account A', 1000.00]
                     );
+
                     throw new Exception('Simulated error');
                 }));
             } catch (TransactionFailedException $e) {
@@ -591,6 +597,7 @@ describe('Transaction API Integration', function () {
                         'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                         ['Test2', 200.00]
                     );
+
                     throw new Exception('Force rollback');
                 }));
             } catch (TransactionFailedException $e) {
@@ -657,6 +664,7 @@ describe('Transaction API Integration', function () {
                     'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                     ['Account B', 2000.00]
                 );
+
                 return $tx->query('SELECT COUNT(*) as count FROM transaction_test');
             }));
 
@@ -670,6 +678,7 @@ describe('Transaction API Integration', function () {
                         'INSERT INTO transaction_test (name, balance) VALUES (?, ?)',
                         ['Account A', 1000.00]
                     );
+
                     throw new Exception('Simulated error');
                 }));
             } catch (TransactionFailedException $e) {

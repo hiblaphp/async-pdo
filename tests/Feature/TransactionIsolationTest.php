@@ -6,8 +6,12 @@ use Hibla\AsyncPDO\AsyncPDOConnection;
 use Hibla\AsyncPDO\Enums\IsolationLevel;
 
 describe('Transaction Isolation Levels', function () {
-    
+
     test('MySQL isolation levels work correctly', function () {
+        $host = getenv('MYSQL_HOST') ?: 'localhost';
+        if ($host === '127.0.0.1' && ! getenv('CI')) {
+            $host = 'localhost';
+        }
         $mysql = new AsyncPDOConnection([
             'driver' => 'mysql',
             'host' => 'localhost',
@@ -26,7 +30,8 @@ describe('Transaction Isolation Levels', function () {
         })->await();
 
         expect($level1)->toBe('SERIALIZABLE')
-            ->and($level2)->toBe('REPEATABLE-READ');
+            ->and($level2)->toBe('REPEATABLE-READ')
+        ;
     });
 
     test('PostgreSQL isolation levels work correctly', function () {
@@ -48,13 +53,18 @@ describe('Transaction Isolation Levels', function () {
         })->await();
 
         expect($level1)->toBe('serializable')
-            ->and($level2)->toBe('read committed');
+            ->and($level2)->toBe('read committed')
+        ;
     });
 
     test('MariaDB isolation levels work correctly', function () {
+        $host = getenv('MYSQL_HOST') ?: 'localhost';
+        if ($host === '127.0.0.1' && ! getenv('CI')) {
+            $host = 'localhost';
+        }
         $mariadb = new AsyncPDOConnection([
             'driver' => 'mysql',
-            'host' => 'localhost',
+            'host' => $host,
             'port' => 3307,
             'username' => 'root',
             'password' => 'root_password',
@@ -70,12 +80,13 @@ describe('Transaction Isolation Levels', function () {
         })->await();
 
         expect($level1)->toBe('READ-COMMITTED')
-            ->and($level2)->toBe('REPEATABLE-READ');
+            ->and($level2)->toBe('REPEATABLE-READ')
+        ;
     });
 
     test('SQL Server isolation levels work correctly', function () {
         skipIfPhp84OrHigher();
-        
+
         if (getenv('CI') !== false) {
             test()->markTestSkipped('SQL Server not available in CI');
         }
@@ -98,13 +109,18 @@ describe('Transaction Isolation Levels', function () {
         })->await();
 
         expect($level1)->toBe('SERIALIZABLE')
-            ->and($level2)->toBe('READ COMMITTED');
+            ->and($level2)->toBe('READ COMMITTED')
+        ;
     });
 
     test('sequential isolation level changes work correctly', function () {
+        $host = getenv('MYSQL_HOST') ?: 'localhost';
+        if ($host === '127.0.0.1' && ! getenv('CI')) {
+            $host = 'localhost';
+        }
         $mysql = new AsyncPDOConnection([
             'driver' => 'mysql',
-            'host' => 'localhost',
+            'host' => $host,
             'port' => 3306,
             'username' => 'root',
             'password' => 'root_password',
@@ -140,6 +156,7 @@ describe('Transaction Isolation Levels', function () {
             ->and($level3)->toBe('READ-COMMITTED')
             ->and($level4)->toBe('REPEATABLE-READ')
             ->and($level5)->toBe('READ-UNCOMMITTED')
-            ->and($level6)->toBe('REPEATABLE-READ');
+            ->and($level6)->toBe('REPEATABLE-READ')
+        ;
     });
 });

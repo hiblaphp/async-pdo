@@ -13,7 +13,7 @@ describe('AsyncPDO Stress Test - SQL Server', function () {
         skipIfPhp84OrHigher();
 
         $isCI = (bool) getenv('CI');
-        
+
         if ($isCI) {
             test()->markTestSkipped('SQL Server not available in CI environment');
         }

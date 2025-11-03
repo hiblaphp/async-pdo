@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Hibla\AsyncPDO;
 
+use function Hibla\async;
+
 use Hibla\AsyncPDO\Enums\IsolationLevel;
-use Hibla\AsyncPDO\Exceptions\NotInTransactionException;
 use Hibla\AsyncPDO\Exceptions\NotInitializedException;
+use Hibla\AsyncPDO\Exceptions\NotInTransactionException;
 use Hibla\AsyncPDO\Exceptions\QueryException;
 use Hibla\AsyncPDO\Exceptions\TransactionException;
 use Hibla\AsyncPDO\Exceptions\TransactionFailedException;
@@ -14,11 +16,11 @@ use Hibla\AsyncPDO\Manager\PoolManager;
 use Hibla\AsyncPDO\Manager\TransactionManager;
 use Hibla\AsyncPDO\Utilities\QueryExecutor;
 use Hibla\AsyncPDO\Utilities\Transaction;
+
+use function Hibla\await;
+
 use Hibla\Promise\Interfaces\PromiseInterface;
 use PDO;
-
-use function Hibla\async;
-use function Hibla\await;
 
 /**
  * Instance-based Asynchronous PDO API for independent database connections.
@@ -218,8 +220,8 @@ final class AsyncPDOConnection
         ?IsolationLevel $isolationLevel = null
     ): PromiseInterface {
         return $this->getTransactionManager()->executeTransaction(
-            fn() => $this->getPool()->get(),
-            fn($connection) => $this->getPool()->release($connection),
+            fn () => $this->getPool()->get(),
+            fn ($connection) => $this->getPool()->release($connection),
             $callback,
             $this->getQueryExecutor(),
             $attempts,
@@ -256,11 +258,11 @@ final class AsyncPDOConnection
 
     /**
      * Executes a query with the specified result processing type.
-     * 
+     *
      * If called from within a transaction, it reuses the transaction's connection.
      *
      * @internal this is for internal usage
-     * 
+     *
      * @param  string  $sql  SQL query/statement
      * @param  array<string|int, mixed>  $params  Query parameters
      * @param  string  $resultType  Type of result processing ('fetchAll', 'fetchOne', 'execute', 'fetchValue')
@@ -300,16 +302,16 @@ final class AsyncPDOConnection
 
     /**
      * Gets the connection pool instance.
-     * 
+     *
      * @internal this is for internal usage
-     * 
+     *
      * @return PoolManager The initialized connection pool
      *
      * @throws NotInitializedException If this instance is not initialized
      */
     private function getPool(): PoolManager
     {
-        if (!$this->isInitialized || $this->pool === null) {
+        if (! $this->isInitialized || $this->pool === null) {
             throw new NotInitializedException(
                 'AsyncPDOConnection instance has not been initialized or has been reset.'
             );
@@ -320,9 +322,9 @@ final class AsyncPDOConnection
 
     /**
      * Gets the query executor instance.
-     * 
+     *
      * @internal this is for internal usage
-     * 
+     *
      * @return QueryExecutor The initialized query executor
      *
      * @throws NotInitializedException If this instance is not initialized
@@ -340,9 +342,9 @@ final class AsyncPDOConnection
 
     /**
      * Gets the transaction manager instance.
-     * 
+     *
      * @internal this is for internal usage
-     * 
+     *
      * @return TransactionManager The initialized transaction manager
      *
      * @throws NotInitializedException If this instance is not initialized
