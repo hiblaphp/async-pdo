@@ -30,8 +30,7 @@ final class Transaction
         // @phpstan-ignore-next-line
         private readonly QueryExecutor $queryExecutor,
         private readonly TransactionManager $transactionManager
-    ) {
-    }
+    ) {}
 
     /**
      * Executes a SELECT query and returns all matching rows.
@@ -47,7 +46,10 @@ final class Transaction
         $stmt = $this->prepareAndExecute($sql, $params);
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return $result === false ? [] : $result;
+        assert(is_array($result));
+        /** @var array<int, array<string, mixed>> $result */
+
+        return $result;
     }
 
     /**
@@ -64,7 +66,10 @@ final class Transaction
         $stmt = $this->prepareAndExecute($sql, $params);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $result === false ? false : $result;
+        assert(is_array($result) || $result === false);
+        /** @var array<string, mixed>|false $result */
+
+        return $result;
     }
 
     /**
@@ -166,9 +171,10 @@ final class Transaction
 
             if (! $success) {
                 $errorInfo = $stmt->errorInfo();
+                $errorMessage = is_string($errorInfo[2] ?? null) ? $errorInfo[2] : 'Unknown error';
 
                 throw new QueryException(
-                    "Failed to execute statement: {$errorInfo[2]}",
+                    "Failed to execute statement: {$errorMessage}",
                     $sql,
                     $params
                 );
